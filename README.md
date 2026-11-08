@@ -109,7 +109,8 @@ as a systemd service behind nginx, certbot for TLS, and a systemd timer for poll
 Once it's set up, every push to `main` deploys itself. A GitHub Actions workflow runs
 the tests, then SSHes in with a key the server pins to `deploy/update.sh`. That script
 updates the code, migrates, gracefully reloads gunicorn and checks the site is up.
-`deploy/setup-github-deploy.sh` does the one-time key and secrets setup.
+`deploy/setup-github-deploy.ps1` (Windows) or `deploy/setup-github-deploy.sh`
+(macOS, Linux, Git Bash) does the one-time key and secrets setup.
 
 Back up `db.sqlite3` (for example with `sqlite3 db.sqlite3 ".backup …"`). It holds
 everything.

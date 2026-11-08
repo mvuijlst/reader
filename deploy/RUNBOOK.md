@@ -79,16 +79,32 @@ then health-check `/login/`. A failed deploy shows as a red run in GitHub Action
 The deploy key is pinned to that script on the server (`command="…",restrict`), so even
 if it leaked, all it could do is deploy `main`.
 
-**One-time setup**, on your own machine, from this repo (needs `gh` logged in):
+**One-time setup**, on your own machine, from this repo (needs `gh` logged in). The host
+can be an IP, a hostname, or an alias from your `~/.ssh/config`. Pass the SSH port
+explicitly if it isn't 22 and your SSH config doesn't set it.
 
-```bash
-deploy/setup-github-deploy.sh <vps-host-or-ip> <ssh-port>
+Windows (PowerShell or pwsh):
+
+```powershell
+.\deploy\setup-github-deploy.ps1 <vps-host-or-alias> <ssh-port>
 ```
 
-That creates the key, stores five Actions secrets in the repo (`DEPLOY_SSH_KEY`,
+macOS, Linux or Git Bash:
+
+```bash
+deploy/setup-github-deploy.sh <vps-host-or-alias> <ssh-port>
+```
+
+Don't run the `.sh` from PowerShell: Windows opens it in a separate window that closes
+before you can read the output. In PowerShell, `bash` is usually WSL's, which doesn't
+share your `gh` login either. Both scripts take a dry run that stores nothing:
+`-DryRun` in PowerShell, `DRY_RUN=1` for the `.sh`.
+
+The script creates the key, stores five Actions secrets in the repo (`DEPLOY_SSH_KEY`,
 `DEPLOY_KNOWN_HOSTS`, `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER`), deletes the private
-key locally, and prints one line. On the VPS, as `django`, append that line to
-`~/.ssh/authorized_keys`:
+key locally, and prints one line; the PowerShell version also copies it to the
+clipboard. Running it again replaces the key, so if you lose the line, just rerun it.
+On the VPS, as `django`, append that line to `~/.ssh/authorized_keys`:
 
 ```bash
 nano ~/.ssh/authorized_keys      # paste the command="…",restrict ssh-ed25519 … line
@@ -101,7 +117,10 @@ Notes:
 - Until the secrets exist, the deploy job is skipped with a notice, not failed (forks too).
 - To redeploy, use **Run workflow**. **Re-run** replays the old commit's workflow file.
 - With a non-standard SSH port, `DEPLOY_KNOWN_HOSTS` must be in bracketed form
-  (`[host]:port ssh-ed25519 …`). `ssh-keyscan -p` produces that, and the setup script uses it.
+  (`[host]:port ssh-ed25519 …`). `ssh-keyscan -p` produces that, and the setup scripts use it.
+- Windows' built-in `ssh-keyscan` can't negotiate with current OpenSSH servers
+  ("unsupported KEX method"), so the PowerShell script uses Git for Windows' copy
+  when it's installed, and falls back to your own `known_hosts`.
 - Server-side edits to tracked files are discarded on deploy. `.env`, `db.sqlite3`,
   `venv/` and `staticfiles/` are untracked and never touched.
 - Services were installed from `deploy/` once (step 3). If a later commit changes
