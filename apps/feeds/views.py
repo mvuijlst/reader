@@ -155,6 +155,8 @@ def _stream(request, kind, obj=None):
 
     ctx["max_id"] = Item.objects.aggregate(m=Max("id"))["m"] or 0
     ctx["all_folders"] = Folder.objects.all()
+    # Offer "open articles on the site" for summary-only feeds, until decided.
+    ctx["offer_open_on_site"] = kind == "feed" and obj.open_on_site is None and obj.looks_summary_only()
     if is_htmx(request) and request.headers.get("HX-Target") == "main":
         return render(request, "feeds/partials/stream.html", ctx)
     ctx.update(sidebar_context(scope))
@@ -359,11 +361,21 @@ def feed_update(request, pk):
     if "folder" in request.POST or request.POST.get("new_folder", "").strip():
         feed.folder = _folder_from_post(request)
         fields.append("folder")
+    if "open_on_site" in request.POST:
+        # Checkbox + hidden "0" fallback: the last value wins.
+        feed.open_on_site = request.POST.getlist("open_on_site")[-1] == "1"
+        fields.append("open_on_site")
     if fields:
         feed.save(update_fields=fields)
     if is_htmx(request):
         return _manage_row(request, feed.pk)
-    messages.success(request, f"Saved {feed.name}.")
+    if fields == ["open_on_site"]:
+        if feed.open_on_site:
+            messages.success(request, f"Articles from {feed.name} now open on {feed.domain}.")
+        else:
+            messages.success(request, f"Articles from {feed.name} open here in the reader.")
+    else:
+        messages.success(request, f"Saved {feed.name}.")
     return redirect(safe_next(request, feed.get_absolute_url()))
 
 

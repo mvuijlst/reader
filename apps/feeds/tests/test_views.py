@@ -141,6 +141,69 @@ class ReaderViewTests(TestCase):
         self.assertNotContains(response, "mag-pill")
         self.assertNotContains(response, "mag-source")
 
+    def test_summary_only_detection(self):
+        short = Feed.objects.create(url="https://news.example/rss", title="News", site_url="https://www.news.example/")
+        for n in range(6):
+            make_item(short, n, content="<p>One sentence about the story.</p>", url=f"https://www.news.example/{n}")
+        self.assertTrue(short.looks_summary_only())
+        Item.objects.filter(feed=self.feed).update(content="<p>" + "Long text. " * 60 + "</p>")
+        self.assertFalse(self.feed.looks_summary_only())
+        # Pictures (comics) and audio (podcasts) are content, not summaries.
+        Item.objects.filter(feed=short).update(content='<p><img src="https://x/comic.png"></p>')
+        self.assertFalse(short.looks_summary_only())
+        Item.objects.filter(feed=short).update(content="<p>Episode 12.</p>", enclosures=[{"url": "https://x/a.mp3", "type": "audio/mpeg"}])
+        self.assertFalse(short.looks_summary_only())
+        # Too few items to judge.
+        Item.objects.filter(feed=short).update(enclosures=[])
+        Item.objects.filter(feed=short, guid__endswith=("-5")).delete()
+        Item.objects.filter(feed=short, guid__endswith=("-4")).delete()
+        self.assertFalse(short.looks_summary_only())
+
+    def test_open_on_site(self):
+        news = Feed.objects.create(url="https://news.example/rss", title="News", site_url="https://www.news.example/")
+        for n in range(6):
+            make_item(news, n, content="<p>One sentence.</p>", url=f"https://www.news.example/story-{n}")
+        url = reverse("feeds:feed", args=[news.pk])
+
+        # Undecided summary-only feed: the header offers it.
+        response = self.client.get(url)
+        self.assertContains(response, "Open on news.example")
+        self.assertNotContains(response, "data-open-site")
+
+        # Switching it on (from the offer, or the menu).
+        response = self.client.post(reverse("feeds:feed-update", args=[news.pk]), {"open_on_site": "1", "next": url}, follow=True)
+        news.refresh_from_db()
+        self.assertIs(news.open_on_site, True)
+        self.assertContains(response, "now open on news.example")
+        self.assertNotContains(response, "stream-offer")
+        self.assertContains(response, "Read on news.example")
+
+        def marked_correctly(page):
+            # Exactly the News items on the page carry the marker.
+            expected = sum(1 for item in page.context["items"] if item.feed_id == news.pk)
+            self.assertGreater(len(page.context["items"]), 0)
+            self.assertContains(page, 'data-open-site="1"', count=expected)
+
+        marked_correctly(response)
+        # Every view marks the items, and so do mixed streams like All items.
+        for mode in ("list", "cards", "magazine"):
+            self.client.post(reverse("feeds:prefs"), {"view_mode": mode}, HTTP_X_REQUESTED_WITH="fetch")
+            marked_correctly(self.client.get(url))
+            marked_correctly(self.client.get(reverse("feeds:all")))
+
+        # Manage page checkbox: hidden "0" plus checked "1" means on; "0" alone means off.
+        manage = reverse("feeds:feed-update", args=[news.pk])
+        self.client.post(manage, {"open_on_site": ["0"]}, HTTP_HX_REQUEST="true")
+        news.refresh_from_db()
+        self.assertIs(news.open_on_site, False)
+        self.client.post(manage, {"open_on_site": ["0", "1"]}, HTTP_HX_REQUEST="true")
+        news.refresh_from_db()
+        self.assertIs(news.open_on_site, True)
+
+        # Declining ("Keep reading here") stops the offer for good.
+        self.client.post(manage, {"open_on_site": "0", "next": url})
+        self.assertNotContains(self.client.get(url), "stream-offer")
+
     def test_search(self):
         response = self.client.get(reverse("feeds:search"), {"q": "zebra"})
         self.assertEqual([i.title for i in response.context["items"]], ["Something about zebras"])

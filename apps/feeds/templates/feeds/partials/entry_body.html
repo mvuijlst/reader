@@ -22,6 +22,6 @@
   <footer class="entry-actions">
     <button class="act act-star" type="button" data-action="star"><svg class="ico"><use href="#i-star"/></svg><span class="when-unstarred">Star</span><span class="when-starred">Starred</span></button>
     <button class="act act-read" type="button" data-action="read"><svg class="ico"><use href="#i-eye"/></svg><span class="when-unread">Mark as read</span><span class="when-read">Keep unread</span></button>
-    {% if item.url %}<a class="act" href="{{ item.url }}" target="_blank" rel="noopener noreferrer" data-action="open-original"><svg class="ico"><use href="#i-external"/></svg>Open original</a>{% endif %}
+    {% if item.url %}<a class="act{% if item.feed.open_on_site %} act-site{% endif %}" href="{{ item.url }}" target="_blank" rel="noopener noreferrer" data-action="open-original"><svg class="ico"><use href="#i-external"/></svg>{% if item.feed.open_on_site %}Read on {{ item.url|domain }}{% else %}Open original{% endif %}</a>{% endif %}
   </footer>
 </div>

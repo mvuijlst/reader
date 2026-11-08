@@ -16,6 +16,21 @@
     {% if feed.last_error %}
     <p class="stream-error">Couldn't update this feed{% if feed.last_success_at %} since {{ feed.last_success_at|readerdatetime }}{% endif %}: {{ feed.last_error }}</p>
     {% endif %}
+    {% if offer_open_on_site %}
+    <div class="stream-offer" role="note">
+      <p>This feed only sends a sentence or two per article. Open them straight on {{ feed.domain }}?</p>
+      <div class="stream-offer-actions">
+        <form method="post" action="{% url 'feeds:feed-update' feed.pk %}">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="open_on_site" value="1">
+          <button class="btn btn-primary btn-sm" type="submit"><svg class="ico"><use href="#i-external"/></svg>Open on {{ feed.domain }}</button>
+        </form>
+        <form method="post" action="{% url 'feeds:feed-update' feed.pk %}">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="open_on_site" value="0">
+          <button class="btn btn-outline btn-sm" type="submit">Keep reading here</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
 
     <div class="toolbar">
       {# Labels on wide panes, icons on narrower ones, inside the ⋯ menu on phones. #}
@@ -60,6 +75,11 @@
           <form method="post" action="{% url 'feeds:feed-fetch' feed.pk %}">
             {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
             <button class="menu-item" type="submit">Fetch now</button>
+          </form>
+          <form method="post" action="{% url 'feeds:feed-update' feed.pk %}">
+            {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+            <input type="hidden" name="open_on_site" value="{{ feed.open_on_site|yesno:'0,1,1' }}">
+            <button class="menu-item" type="submit">{% if feed.open_on_site %}Read articles here instead{% else %}Open articles on {{ feed.domain }}{% endif %}</button>
           </form>
           <form method="post" action="{% url 'feeds:feed-update' feed.pk %}" class="menu-form">
             {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">

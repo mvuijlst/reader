@@ -30,6 +30,12 @@ class Feed(models.Model):
     folder = models.ForeignKey(
         Folder, null=True, blank=True, on_delete=models.SET_NULL, related_name="feeds"
     )
+    # None = not decided yet: for a feed that only sends summaries, the feed's
+    # header offers to switch this on. False = the user chose to read here.
+    open_on_site = models.BooleanField(
+        null=True, blank=True, default=None,
+        help_text="Open articles on the original site instead of in the reader.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Polling state
@@ -74,6 +80,26 @@ class Feed(models.Model):
     @property
     def link(self):
         return self.site_url or self.url
+
+    @property
+    def domain(self):
+        """The site's domain for labels like "Open on nytimes.com"."""
+        host = urlsplit(self.site_url or self.url).hostname or ""
+        return host.removeprefix("www.")
+
+    def looks_summary_only(self, sample=20, threshold=350):
+        """True when most recent items are just a sentence or two: short text, and
+        no picture or audio in the body (so comics and podcasts don't count)."""
+        from .services.sanitize import clean_text  # avoid an import cycle at module load
+
+        recent = list(self.items.order_by("-published").values_list("content", "enclosures")[:sample])
+        if len(recent) < 5:
+            return False
+        thin = sum(
+            1 for content, enclosures in recent
+            if len(clean_text(content)) < threshold and "<img" not in content and not enclosures
+        )
+        return thin >= 0.7 * len(recent)
 
 
 class Item(models.Model):

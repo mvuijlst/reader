@@ -249,13 +249,26 @@
       return;
     }
     // j/k open the next item (list row inline, card in the overlay); n/p only
-    // move the highlight, unless the card overlay is already showing.
-    const open = (isList() && read) || (usesOverlay() && (read || overlayOpen()));
+    // move the highlight, unless the card overlay is already showing. Items from
+    // feeds set to open on their site never open the overlay on j/k (it would
+    // hold one sentence) and are left for o/Enter/click, which go to the site.
+    const site = opensOnSite(target);
+    const open = (isList() && read) || (usesOverlay() && (overlayOpen() || (read && !site)));
     select(target, { open, read });
   }
 
+  // Items from feeds that only send summaries can be set to open on their site.
+  const opensOnSite = (item) => item?.dataset.openSite === '1' && !!item.dataset.url;
+
   function toggleOpen(item) {
     if (!item) return;
+    if (opensOnSite(item)) {
+      // One step to the article: new tab, item marked read, highlight follows.
+      if (overlayOpen()) closeOverlay();
+      select(item, { read: false, scroll: false });
+      openOriginal(item);
+      return;
+    }
     if (usesOverlay()) {
       if (overlayOpen() && item === current) closeOverlay();
       else select(item, { open: true });

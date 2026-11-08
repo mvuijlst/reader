@@ -1,4 +1,4 @@
 <article class="item entry{% if not item.is_read %} unread{% endif %}{% if item.is_starred %} starred{% endif %}"
-  id="item-{{ item.pk }}" data-id="{{ item.pk }}" data-feed="{{ item.feed_id }}" data-folder="{{ item.feed.folder_id|default_if_none:'' }}" data-url="{{ item.url }}">
+  id="item-{{ item.pk }}" data-id="{{ item.pk }}" data-feed="{{ item.feed_id }}" data-folder="{{ item.feed.folder_id|default_if_none:'' }}" data-url="{{ item.url }}"{% if item.feed.open_on_site and item.url %} data-open-site="1"{% endif %}>
   {% include "feeds/partials/entry_body.html" %}
 </article>

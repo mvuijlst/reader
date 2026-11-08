@@ -1,12 +1,17 @@
 {% load reader_tags %}<tr id="feed-row-{{ feed.pk }}"
     hx-post="{% url 'feeds:feed-update' feed.pk %}" hx-trigger="change" hx-include="this"
-    hx-target="this" hx-swap="outerHTML">
+    hx-target="this" hx-swap="outerHTML" hx-sync="this:replace">
   <td class="name">
     <div class="name-line">
       {% include "feeds/partials/favicon.html" %}
       <input type="text" name="custom_title" value="{{ feed.name }}" maxlength="500" aria-label="Name for {{ feed.name }}">
     </div>
     <a class="url" href="{{ feed.url }}" target="_blank" rel="noopener noreferrer" title="{{ feed.url }}">{{ feed.url }}</a>
+    <label class="site-toggle">
+      <input type="hidden" name="open_on_site" value="0">
+      <input type="checkbox" name="open_on_site" value="1"{% if feed.open_on_site %} checked{% endif %}>
+      Open articles on {{ feed.domain }}
+    </label>
   </td>
   <td>
     <select name="folder" aria-label="Folder for {{ feed.name }}">

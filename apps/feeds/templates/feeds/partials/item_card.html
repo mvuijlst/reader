@@ -1,5 +1,5 @@
 {% load reader_tags %}<article class="item card{% if not item.is_read %} unread{% endif %}{% if item.is_starred %} starred{% endif %}{% if not item.thumbnail %} card-text-only{% endif %}"
-  id="item-{{ item.pk }}" data-id="{{ item.pk }}" data-feed="{{ item.feed_id }}" data-folder="{{ item.feed.folder_id|default_if_none:'' }}" data-url="{{ item.url }}">
+  id="item-{{ item.pk }}" data-id="{{ item.pk }}" data-feed="{{ item.feed_id }}" data-folder="{{ item.feed.folder_id|default_if_none:'' }}" data-url="{{ item.url }}"{% if item.feed.open_on_site and item.url %} data-open-site="1"{% endif %}>
   <div class="card-hit" data-action="toggle">
     {% if item.thumbnail %}<div class="card-media pic"><img class="pic-backdrop" src="{{ item.thumbnail }}" alt="" aria-hidden="true" loading="lazy" decoding="async"><img class="pic-img" src="{{ item.thumbnail }}" alt="" loading="lazy" decoding="async"></div>{% endif %}
     <div class="card-text">
@@ -9,7 +9,7 @@
     </div>
   </div>
   <div class="card-foot">
-    <time datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|readerdate }}</time>
+    <span class="foot-left"><time datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|readerdate }}</time>{% if item.feed.open_on_site and item.url %}<span class="site-note"><svg class="ico site-ico"><use href="#i-external"/></svg>{{ item.url|domain }}</span>{% endif %}</span>
     <button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>
   </div>
   <template>{% include "feeds/partials/entry_body.html" %}</template>

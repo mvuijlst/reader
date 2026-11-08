@@ -1,5 +1,5 @@
 {% load reader_tags %}<article class="item mag{% if item.mag_slot %} mag-{{ item.mag_slot }} mag-featured{% endif %}{% if not item.is_read %} unread{% endif %}{% if item.is_starred %} starred{% endif %}{% if not item.thumbnail %} mag-noimg{% endif %}"
-  id="item-{{ item.pk }}" data-id="{{ item.pk }}" data-feed="{{ item.feed_id }}" data-folder="{{ item.feed.folder_id|default_if_none:'' }}" data-url="{{ item.url }}">
+  id="item-{{ item.pk }}" data-id="{{ item.pk }}" data-feed="{{ item.feed_id }}" data-folder="{{ item.feed.folder_id|default_if_none:'' }}" data-url="{{ item.url }}"{% if item.feed.open_on_site and item.url %} data-open-site="1"{% endif %}>
   <div class="mag-hit" data-action="toggle">
     <div class="mag-media pic">
       {% if item.thumbnail %}
@@ -11,7 +11,7 @@
       <div class="mag-overlay">
         {% if show_source %}<span class="mag-pill">{{ item.feed.name }}</span>{% endif %}
         <div class="mag-overlay-text">
-          <time datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|ago }}</time>
+          <span class="mag-overlay-meta"><time datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|ago }}</time>{% if item.feed.open_on_site and item.url %}<span class="site-note"><svg class="ico site-ico"><use href="#i-external"/></svg>{{ item.url|domain }}</span>{% endif %}</span>
           <h3 class="mag-title">{{ item.title|default:"(untitled)" }}</h3>
           {% if item.mag_slot == "hero" and item.summary %}<p class="mag-snippet">{{ item.summary }}</p>{% endif %}
         </div>
@@ -20,7 +20,7 @@
     </div>
     {% if not item.mag_slot %}
     <div class="mag-text">
-      <div class="mag-meta">{% if show_source %}<span class="mag-source">{{ item.feed.name }}</span> · {% endif %}<time datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|ago }}</time></div>
+      <div class="mag-meta">{% if show_source %}<span class="mag-source">{{ item.feed.name }}</span> · {% endif %}<time datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|ago }}</time>{% if item.feed.open_on_site and item.url %}<span class="site-note"><svg class="ico site-ico"><use href="#i-external"/></svg>{{ item.url|domain }}</span>{% endif %}</div>
       <h3 class="mag-title">{{ item.title|default:"(untitled)" }}</h3>
     </div>
     {% endif %}

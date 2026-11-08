@@ -1,4 +1,5 @@
 from datetime import timedelta
+from urllib.parse import urlsplit
 
 from django import template
 from django.utils import dateformat, timezone
@@ -27,6 +28,13 @@ def readerdatetime(value):
     local, now = timezone.localtime(value), timezone.localtime()
     fmt = "j M, H:i" if local.year == now.year else "j M Y, H:i"
     return dateformat.format(local, fmt)
+
+
+@register.filter
+def domain(url):
+    """'https://www.nytimes.com/2026/…' -> 'nytimes.com'."""
+    host = urlsplit(url or "").hostname or ""
+    return host.removeprefix("www.")
 
 
 @register.filter
