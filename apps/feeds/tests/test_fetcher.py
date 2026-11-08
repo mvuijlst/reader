@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from apps.feeds.models import Feed, Item
 from apps.feeds.services import discovery, fetcher, opml
-from apps.feeds.services.sanitize import clean_html
+from apps.feeds.services.sanitize import clean_html, first_image
 
 from .helpers import HTML_FORMAT_VARIANTS, HTML_WITH_FEEDS, PNG, RSS, fake_web, response
 
@@ -123,6 +123,27 @@ class FetchTests(TestCase):
         self.assertEqual(purged, 1)  # "Ancient" only
         self.assertTrue(Item.objects.filter(guid="ep-2").exists())
         self.assertTrue(Item.objects.filter(pk=starred.pk).exists())
+
+
+class ThumbnailTests(TestCase):
+    def test_first_real_image_wins(self):
+        html = (
+            '<p><img src="https://feeds.feedburner.com/~r/x/~4/abc" width="1" height="1">'
+            '<img src="https://s.w.org/images/core/emoji/15/svg/1f600.svg">'
+            '<img src="https://example.com/icon.png" width="16" height="16">'
+            '<img src="https://example.com/photo.jpg?a=1&amp;b=2" width="800"></p>'
+        )
+        self.assertEqual(first_image(html), "https://example.com/photo.jpg?a=1&b=2")
+        self.assertEqual(first_image("<p>No pictures.</p>"), "")
+
+    def test_fetch_sets_thumbnails(self):
+        feed = Feed.objects.create(url=FEED_URL)
+        with fake_web({FEED_URL: response(RSS, url=FEED_URL)}):
+            fetcher.fetch_feeds([feed])
+        # From the content's <img> (made absolute by feedparser).
+        self.assertEqual(Item.objects.get(guid="https://example.com/1").thumbnail, "https://example.com/a.png")
+        self.assertEqual(Item.objects.get(guid="ep-2").thumbnail, "https://example.com/art/ep2.jpg")  # itunes:image
+        self.assertEqual(Item.objects.get(title="Ancient").thumbnail, "")
 
 
 class SanitizeTests(TestCase):

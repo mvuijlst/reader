@@ -4,7 +4,7 @@ from unittest import mock
 from apps.feeds.services.http import HttpResult
 
 RSS = b"""<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
 <channel>
   <title>Example &amp; Co</title>
   <link>https://example.com/</link>
@@ -23,6 +23,7 @@ RSS = b"""<?xml version="1.0" encoding="utf-8"?>
     <description>Plain text
 second line</description>
     <enclosure url="https://cdn.example.com/ep2.mp3" type="audio/mpeg" length="1234"/>
+    <itunes:image href="https://example.com/art/ep2.jpg"/>
   </item>
   <item>
     <title>Ancient</title>

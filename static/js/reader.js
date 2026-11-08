@@ -24,8 +24,13 @@
   let gTimer = null;
 
   const stream = () => $('#stream');
-  const isList = () => stream()?.dataset.view === 'list';
+  const view = () => stream()?.dataset.view || 'expanded';
+  const isList = () => view() === 'list';
+  const isCards = () => view() === 'cards';
+  const isExpanded = () => view() === 'expanded';
   const items = () => $$('#items > .item');
+  const overlay = $('#card-reader');
+  const overlayOpen = () => overlay.open;
   const markOnScroll = () => stream()?.dataset.markOnScroll === '1';
 
   // --- server calls ---------------------------------------------------------
@@ -119,11 +124,13 @@
     if (read && item.dataset.kept && !explicit) return;  // "keep unread" sticks
     if (!read) item.dataset.kept = '1'; else delete item.dataset.kept;
     item.classList.toggle('unread', !read);
+    syncOverlay();
     adjustCounts(item, read ? -1 : 1);
     try {
       await post(`/api/items/${item.dataset.id}/`, { read: read ? 1 : 0 });
     } catch (e) {
       item.classList.toggle('unread', read);
+      syncOverlay();
       adjustCounts(item, read ? 1 : -1);
       toast("Couldn't save — are you offline?");
     }
@@ -137,15 +144,46 @@
     if (!item) return;
     const on = !item.classList.contains('starred');
     item.classList.toggle('starred', on);
+    syncOverlay();
     adjustStarred(on ? 1 : -1);
     try {
       await post(`/api/items/${item.dataset.id}/`, { starred: on ? 1 : 0 });
     } catch (e) {
       item.classList.toggle('starred', !on);
+      syncOverlay();
       adjustStarred(on ? -1 : 1);
       toast("Couldn't save — are you offline?");
     }
   }
+
+  // --- card view: the reading overlay -----------------------------------------
+
+  // The overlay always shows `current`; it mirrors that card's read/star classes
+  // so its buttons ("Keep unread", "Starred") read correctly.
+  function syncOverlay() {
+    if (!overlayOpen() || !current) return;
+    const body = $('#card-reader-item');
+    body.classList.toggle('unread', current.classList.contains('unread'));
+    body.classList.toggle('starred', current.classList.contains('starred'));
+  }
+
+  function showInOverlay(item) {
+    const tpl = $('template', item);
+    if (!tpl) return;
+    const body = $('#card-reader-item');
+    body.replaceChildren(tpl.content.cloneNode(true));
+    htmx.process(body);
+    $('#card-reader-scroll').scrollTop = 0;
+    if (!overlayOpen()) overlay.showModal();
+    $('#card-reader-scroll').focus({ preventScroll: true });
+    syncOverlay();
+  }
+
+  function closeOverlay() {
+    if (overlayOpen()) overlay.close();
+  }
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });  // backdrop
 
   // --- current item, opening, scrolling ---------------------------------------
 
@@ -173,17 +211,16 @@
   }
 
   function scrollToItem(item) {
-    const offset = item.getBoundingClientRect().top - main.getBoundingClientRect().top;
-    const top = main.scrollTop + offset - headHeight();
-    if (isList() && !item.classList.contains('open')) {
-      // List rows: only scroll when the row is out of view.
-      const rect = item.getBoundingClientRect();
-      const view = main.getBoundingClientRect();
-      if (rect.top < view.top + headHeight()) main.scrollTop = top - 4;
-      else if (rect.bottom > view.bottom) main.scrollTop += rect.bottom - view.bottom + 4;
+    const rect = item.getBoundingClientRect();
+    const view = main.getBoundingClientRect();
+    const top = main.scrollTop + rect.top - view.top - headHeight();
+    if (isExpanded() || item.classList.contains('open')) {
+      main.scrollTop = top - (isList() ? 0 : 12);
       return;
     }
-    main.scrollTop = top - (isList() ? 0 : 12);
+    // List rows and cards: only scroll when the item is out of view.
+    if (rect.top < view.top + headHeight()) main.scrollTop = top - 8;
+    else if (rect.bottom > view.bottom) main.scrollTop += rect.bottom - view.bottom + 8;
   }
 
   function select(item, { open = false, read = true, scroll = true } = {}) {
@@ -195,8 +232,9 @@
     current = item;
     item.classList.add('current');
     if (isList() && open) expand(item);
+    if (isCards() && open) showInOverlay(item);
     if (scroll) scrollToItem(item);
-    if (read && (!isList() || open)) setRead(item, true);
+    if (read && (isExpanded() || open)) setRead(item, true);
   }
 
   function move(direction, { read = true } = {}) {
@@ -208,11 +246,20 @@
       if (direction > 0) $('#items .more')?.scrollIntoView({ block: 'end' });
       return;
     }
-    select(target, { open: isList() && read, read });
+    // j/k open the next item (list row inline, card in the overlay); n/p only
+    // move the highlight, unless the card overlay is already showing.
+    const open = (isList() && read) || (isCards() && (read || overlayOpen()));
+    select(target, { open, read });
   }
 
   function toggleOpen(item) {
-    if (!item || !isList()) return;
+    if (!item) return;
+    if (isCards()) {
+      if (overlayOpen() && item === current) closeOverlay();
+      else select(item, { open: true });
+      return;
+    }
+    if (!isList()) return;
     if (item !== current) { select(item, { open: true }); return; }
     if (item.classList.contains('open')) { collapse(item); scrollToItem(item); }
     else { expand(item); scrollToItem(item); setRead(item, true); }
@@ -225,11 +272,22 @@
   }
 
   function pageDown(up) {
-    const step = Math.max(80, main.clientHeight - headHeight() - 60);
-    const atBottom = main.scrollTop + main.clientHeight >= main.scrollHeight - 2;
+    const pane = overlayOpen() ? $('#card-reader-scroll') : main;
+    const covered = overlayOpen() ? 0 : headHeight();
+    const step = Math.max(80, pane.clientHeight - covered - 60);
+    const atBottom = pane.scrollTop + pane.clientHeight >= pane.scrollHeight - 2;
     if (!up && atBottom) { move(1); return; }
-    main.scrollBy({ top: up ? -step : step });
+    pane.scrollBy({ top: up ? -step : step });
   }
+
+  // A thumbnail that fails to load (hotlink protection, 404) turns its card
+  // into a text card instead of showing a broken image.
+  document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (img.tagName !== 'IMG' || !img.closest('.card-media')) return;
+    img.closest('.card')?.classList.add('card-text-only');
+    img.closest('.card-media').remove();
+  }, true);
 
   // Expanded view: an item becomes current (and read) once its top scrolls
   // under the toolbar, the way Google Reader did it.
@@ -241,7 +299,7 @@
   }, { passive: true });
 
   function onScroll() {
-    if (!stream() || isList()) return;
+    if (!stream() || !isExpanded()) return;
     const line = main.getBoundingClientRect().top + headHeight() + 16;
     let passed = null;
     for (const item of items()) {
@@ -355,10 +413,14 @@
 
   document.addEventListener('click', (e) => {
     const control = e.target.closest('[data-action]');
-    const item = e.target.closest('#items .item');
+    // Inside the card overlay, the item is the card it is showing.
+    const item = e.target.closest('#items .item') || (e.target.closest('#card-reader') ? current : null);
     const action = control?.dataset.action;
 
     switch (action) {
+      case 'card-next': move(1); return;
+      case 'card-prev': move(-1); return;
+      case 'card-close': closeOverlay(); return;
       case 'star': e.preventDefault(); e.stopPropagation(); toggleStar(item); return;
       case 'read': toggleRead(item); return;
       case 'toggle': toggleOpen(item); return;
@@ -376,7 +438,7 @@
       case 'help': toggleHelp(); return;
     }
     // Clicking anywhere in an expanded entry makes it the current one.
-    if (item && item !== current && !isList()) select(item, { scroll: false });
+    if (item && item !== current && isExpanded()) select(item, { scroll: false });
 
     // Close open menus when clicking elsewhere.
     for (const menu of $$('details.menu[open]')) if (!menu.contains(e.target)) menu.removeAttribute('open');
@@ -419,8 +481,9 @@
       case 'A': markAllRead(); break;
       case 'r': reload(); break;
       case 'u': document.body.classList.toggle('fullscreen'); break;
-      case '1': if (isList()) setPrefs({ view_mode: 'expanded' }); break;
-      case '2': if (!isList()) setPrefs({ view_mode: 'list' }); break;
+      case '1': if (!isExpanded()) { closeOverlay(); setPrefs({ view_mode: 'expanded' }); } break;
+      case '2': if (!isList()) { closeOverlay(); setPrefs({ view_mode: 'list' }); } break;
+      case '3': if (!isCards()) setPrefs({ view_mode: 'cards' }); break;
       case 'N': navMove(1); break;
       case 'P': navMove(-1); break;
       case 'O': navOpen(); break;
@@ -430,7 +493,11 @@
       case 'a': openSubscribe(); break;
       case '?': toggleHelp(); break;
       case ' ': pageDown(e.shiftKey); break;
-      case 'Escape': toggleNav(false); for (const m of $$('details.menu[open]')) m.removeAttribute('open'); break;
+      case 'Escape':
+        if (overlayOpen()) { closeOverlay(); break; }
+        toggleNav(false);
+        for (const m of $$('details.menu[open]')) m.removeAttribute('open');
+        break;
       default: return;
     }
     e.preventDefault();
@@ -446,6 +513,7 @@
   document.body.addEventListener('htmx:afterSwap', (e) => {
     const target = e.detail.target;
     if (target === main) {
+      closeOverlay();
       current = null;
       main.scrollTop = 0;
       toggleNav(false);

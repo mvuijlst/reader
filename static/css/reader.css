@@ -71,6 +71,7 @@ img, video { max-width: 100%; }
 
 [data-theme="dark"] .when-light,
 [data-theme="light"] .when-dark { display: none; }
+.show-sm { display: none; }
 
 /* --- form controls ------------------------------------------------------- */
 
@@ -254,6 +255,7 @@ body.fullscreen .sidebar, body.fullscreen .topbar { display: none; }
 .toolbar [data-action="reload"] { margin-left: auto; }
 .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; }
 .seg button {
+  display: inline-flex; align-items: center;
   padding: 5px 11px; font-size: 13px; line-height: 1.3;
   color: var(--text-2); background: transparent; border: 0; cursor: pointer;
   transition: background 0.12s ease, color 0.12s ease;
@@ -324,6 +326,68 @@ body.fullscreen .sidebar, body.fullscreen .topbar { display: none; }
 .star-btn:hover { color: var(--star); }
 .starred .star-btn, .starred .act-star { color: var(--star); }
 .starred .star-btn .ico, .starred .act-star .ico { fill: currentColor; }
+
+/* --- card view ------------------------------------------------------------- */
+
+.view-cards #items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 18px;
+  padding: 20px 24px;
+}
+.view-cards #items > .more, .view-cards #items > .end, .view-cards #items > .empty { grid-column: 1 / -1; }
+.card {
+  display: flex; flex-direction: column; min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.card:hover { border-color: var(--border-strong); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16); transform: translateY(-1px); }
+.item.card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.card-hit { flex: 1; display: flex; flex-direction: column; cursor: pointer; }
+.card-media { aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-2); }
+.card-media img { display: block; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s ease; }
+.card-text { display: grid; gap: 6px; padding: 12px 14px 4px; }
+.card-source {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+}
+.card-source span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-title, .card-snippet { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+.card-title {
+  -webkit-line-clamp: 3;
+  font-size: 16px; font-weight: 550; line-height: 1.32; letter-spacing: -0.005em;
+  color: var(--text-2);
+}
+.card.unread .card-title { color: var(--text); font-weight: 700; }
+.card-snippet { -webkit-line-clamp: 3; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.card-text-only .card-snippet { -webkit-line-clamp: 8; }
+.card:not(.unread) .card-media img { opacity: 0.55; }
+.card-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 2px 8px 8px 14px;
+  font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.card.unread .card-foot time::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 7px;
+  vertical-align: 1px; border-radius: 50%; background: var(--accent);
+}
+
+.card-reader {
+  width: min(840px, calc(100vw - 32px)); height: calc(100dvh - 48px);
+  max-width: none; max-height: none; padding: 0;
+  color: var(--text); background: var(--bg);
+  border: 1px solid var(--border-strong); border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-reader[open] { display: flex; flex-direction: column; }
+.card-reader::backdrop { background: rgba(0, 0, 0, 0.6); }
+.card-reader-bar { flex: none; display: flex; align-items: center; gap: 2px; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.card-reader-spacer { flex: 1; }
+.card-reader-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; outline: none; padding: 28px 40px 48px; }
+.card-reader-item .entry-card { max-width: 44rem; margin: 0 auto; }
 
 /* --- expanded view -------------------------------------------------------- */
 
@@ -527,6 +591,11 @@ table.subs { width: 100%; border-collapse: collapse; font-size: 13px; }
 
 @media (max-width: 639px) {
   .hide-sm { display: none !important; }
+  .show-sm { display: inline-block; }
+  .seg .ico { width: 17px; height: 17px; }
+  .view-cards #items { gap: 12px; padding: 12px; }
+  .card-reader { width: 100vw; height: 100dvh; border: 0; border-radius: 0; }
+  .card-reader-scroll { padding: 18px 16px 40px; }
   .brand span { display: none; }
   .stream-head { position: static; padding: 12px 12px 8px; }
   .stream-title h1 { font-size: 18px; }

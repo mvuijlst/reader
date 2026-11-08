@@ -100,6 +100,20 @@ class ReaderViewTests(TestCase):
         response = self.client.get(reverse("feeds:feed", args=[self.feed.pk]))
         self.assertIn(self.items[0], response.context["items"])
 
+    def test_card_view(self):
+        Item.objects.filter(pk=self.items[0].pk).update(thumbnail="https://example.com/pic.jpg")
+        self.client.post(reverse("feeds:prefs"), {"view_mode": "cards"}, HTTP_X_REQUESTED_WITH="fetch")
+        self.assertEqual(Preferences.load().view_mode, "cards")
+        response = self.client.get(reverse("feeds:all"))
+        self.assertContains(response, 'class="stream view-cards"')
+        self.assertContains(response, 'class="item card unread"', count=1)  # the one with a picture
+        self.assertContains(response, "card-text-only", count=4)  # rest of the page of 5
+        self.assertContains(response, 'src="https://example.com/pic.jpg"')
+        self.assertContains(response, 'data-value="cards" aria-pressed="true"')
+        # Unknown view modes are ignored.
+        self.client.post(reverse("feeds:prefs"), {"view_mode": "bogus"}, HTTP_X_REQUESTED_WITH="fetch")
+        self.assertEqual(Preferences.load().view_mode, "cards")
+
     def test_search(self):
         response = self.client.get(reverse("feeds:search"), {"q": "zebra"})
         self.assertEqual([i.title for i in response.context["items"]], ["Something about zebras"])

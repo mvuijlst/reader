@@ -1,5 +1,5 @@
 {% for item in items %}
-  {% if prefs.view_mode == "list" %}{% include "feeds/partials/item_row.html" %}{% else %}{% include "feeds/partials/item_entry.html" %}{% endif %}
+  {% if prefs.view_mode == "list" %}{% include "feeds/partials/item_row.html" %}{% elif prefs.view_mode == "cards" %}{% include "feeds/partials/item_card.html" %}{% else %}{% include "feeds/partials/item_entry.html" %}{% endif %}
 {% empty %}
   {% if not is_continuation %}
   <div class="empty">

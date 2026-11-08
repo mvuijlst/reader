@@ -85,7 +85,8 @@ class Item(models.Model):
     author = models.CharField(max_length=500, blank=True)
     content = models.TextField(blank=True, help_text="Sanitized HTML.")
     summary = models.TextField(blank=True, help_text="Plain-text snippet for list view.")
-    image = models.URLField(max_length=2000, blank=True, help_text="Thumbnail, when the content has none.")
+    image = models.URLField(max_length=2000, blank=True, help_text="Lead image shown above content that has none.")
+    thumbnail = models.URLField(max_length=2000, blank=True, help_text="Best picture for card view.")
     enclosures = models.JSONField(default=list, blank=True)
 
     published = models.DateTimeField()
@@ -117,7 +118,8 @@ class Preferences(models.Model):
 
     VIEW_EXPANDED = "expanded"
     VIEW_LIST = "list"
-    VIEW_CHOICES = [(VIEW_EXPANDED, "Expanded"), (VIEW_LIST, "List")]
+    VIEW_CARDS = "cards"
+    VIEW_CHOICES = [(VIEW_EXPANDED, "Expanded"), (VIEW_LIST, "List"), (VIEW_CARDS, "Cards")]
 
     view_mode = models.CharField(max_length=10, choices=VIEW_CHOICES, default=VIEW_EXPANDED)
     unread_only = models.BooleanField(default=True)

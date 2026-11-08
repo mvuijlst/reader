@@ -16,6 +16,9 @@ timer. One person, one server, all your reading history in one file.
 - **Expanded view**: full articles one after another. An item becomes read when its
   top scrolls under the toolbar, like Google Reader.
 - **List view**: one line per item (source, title, snippet, date); items open inline.
+- **Card view**: a grid of cards with each item's picture (media thumbnail, podcast
+  artwork, or the first real image in the article), title and snippet. Items open in
+  a reading panel, and `j`/`k` page through the cards from inside it.
 - Show new items or all items, newest or oldest first, with infinite scroll.
 - Search across every item you've ever fetched.
 - Podcast enclosures get an audio player, and YouTube entries show their thumbnail.
@@ -64,9 +67,9 @@ Press `?` in the app for this list.
 | `j` / `k` | next / previous item | `s` | star / unstar |
 | `n` / `p` | move without marking read | `m` | toggle read / keep unread |
 | `space` | page down, then next item | `v` | open original in a new tab |
-| `o` / `enter` | open / close item (list view) | `shift+a` | mark all as read |
+| `o` / `enter` | open / close item (list, cards) | `shift+a` | mark all as read |
 | `shift+n` / `shift+p` | next / previous subscription | `r` | refresh |
-| `shift+o` | open highlighted subscription | `1` / `2` | expanded / list view |
+| `shift+o` | open highlighted subscription | `1` / `2` / `3` | expanded / list / card view |
 | `shift+x` | expand / collapse folder | `u` | hide / show sidebar |
 | `g` `a` | go to all items | `a` | add a subscription |
 | `g` `s` | go to starred items | `/` | search |

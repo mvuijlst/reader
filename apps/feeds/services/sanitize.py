@@ -65,6 +65,33 @@ def text_snippet(fragment, length=280):
     return cut.rstrip(",.;:-–— ") + "…"
 
 
+_IMG_TAG = re.compile(r"<img\b[^>]*>", re.I)
+_ATTR = re.compile(r'\b(src|width|height)="([^"]*)"', re.I)
+# Images that make poor thumbnails: tracking pixels, emoji, avatars, share buttons.
+_NOT_A_PICTURE = re.compile(
+    r"feedburner\.com/~|/pixel|tracking|stats\.wordpress\.com|/emoji/|gravatar\.com|"
+    r"doubleclick\.net|feeds\.wordpress\.com/1\.0/|/share[-_]?button|/badge",
+    re.I,
+)
+
+
+def first_image(fragment):
+    """URL of the first image in sanitized HTML that could serve as a thumbnail."""
+    for tag in _IMG_TAG.findall(fragment or ""):
+        attrs = {k.lower(): html.unescape(v) for k, v in _ATTR.findall(tag)}
+        src = attrs.get("src", "")
+        if not src.startswith(("http://", "https://")) or _NOT_A_PICTURE.search(src):
+            continue
+        too_small = False
+        for dim in ("width", "height"):
+            value = attrs.get(dim, "").rstrip("px")
+            if value.isdigit() and int(value) < 48:
+                too_small = True
+        if not too_small:
+            return src
+    return ""
+
+
 def plain_to_html(text):
     """Plain-text bodies (YouTube descriptions, text/plain RSS) as paragraphs with links."""
     paragraphs = re.split(r"\n\s*\n", text.strip())

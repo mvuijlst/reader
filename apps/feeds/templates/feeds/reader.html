@@ -33,6 +33,19 @@
 </div>
 {% endif %}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+{# Card view opens items here; reader.js fills it from the card's <template>. #}
+<dialog class="card-reader" id="card-reader" aria-label="Article">
+  <div class="card-reader-bar">
+    <button class="icon-btn" type="button" data-action="card-prev" title="Previous (k)" aria-label="Previous item"><svg class="ico"><use href="#i-chevron-left"/></svg></button>
+    <button class="icon-btn" type="button" data-action="card-next" title="Next (j)" aria-label="Next item"><svg class="ico"><use href="#i-chevron"/></svg></button>
+    <span class="card-reader-spacer"></span>
+    <button class="icon-btn" type="button" data-action="card-close" title="Close (esc)" aria-label="Close"><svg class="ico"><use href="#i-close"/></svg></button>
+  </div>
+  <div class="card-reader-scroll" id="card-reader-scroll" tabindex="-1" autofocus>
+    <div class="item card-reader-item" id="card-reader-item"></div>
+  </div>
+</dialog>
 {% include "feeds/partials/help.html" %}
 {% endblock %}
 {% block scripts %}<script src="{% static 'js/reader.js' %}"></script>{% endblock %}

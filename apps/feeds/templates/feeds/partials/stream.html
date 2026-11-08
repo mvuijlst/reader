@@ -19,14 +19,15 @@
 
     <div class="toolbar">
       <div class="seg" role="group" aria-label="View">
-        <button type="button" data-action="view" data-value="expanded" aria-pressed="{% if prefs.view_mode == 'expanded' %}true{% else %}false{% endif %}" title="Expanded view (1)">Expanded</button>
-        <button type="button" data-action="view" data-value="list" aria-pressed="{% if prefs.view_mode == 'list' %}true{% else %}false{% endif %}" title="List view (2)">List</button>
+        <button type="button" data-action="view" data-value="expanded" aria-pressed="{% if prefs.view_mode == 'expanded' %}true{% else %}false{% endif %}" title="Expanded view (1)" aria-label="Expanded view"><svg class="ico show-sm"><use href="#i-view-expanded"/></svg><span class="hide-sm">Expanded</span></button>
+        <button type="button" data-action="view" data-value="list" aria-pressed="{% if prefs.view_mode == 'list' %}true{% else %}false{% endif %}" title="List view (2)" aria-label="List view"><svg class="ico show-sm"><use href="#i-view-list"/></svg><span class="hide-sm">List</span></button>
+        <button type="button" data-action="view" data-value="cards" aria-pressed="{% if prefs.view_mode == 'cards' %}true{% else %}false{% endif %}" title="Card view (3)" aria-label="Card view"><svg class="ico show-sm"><use href="#i-view-cards"/></svg><span class="hide-sm">Cards</span></button>
       </div>
 
       {% if unread_count is not None %}
       <div class="seg" role="group" aria-label="Show">
         <button type="button" data-action="unread-only" data-value="1" aria-pressed="{{ unread_only|yesno:'true,false' }}"><span class="js-unread-count" data-n="{{ unread_count }}">{{ unread_count }}</span>&nbsp;new</button>
-        <button type="button" data-action="unread-only" data-value="0" aria-pressed="{{ unread_only|yesno:'false,true' }}">All<span class="hide-sm"> items</span></button>
+        <button type="button" data-action="unread-only" data-value="0" aria-pressed="{{ unread_only|yesno:'false,true' }}">All<span class="hide-sm">&nbsp;items</span></button>
       </div>
       <button class="btn btn-outline btn-sm" type="button" data-action="mark-all-read" title="Mark all as read (shift+a)">
         <svg class="ico"><use href="#i-check"/></svg><span class="hide-sm">Mark all as read</span>

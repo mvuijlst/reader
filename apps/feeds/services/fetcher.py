@@ -22,7 +22,7 @@ from filelock import FileLock, Timeout
 from ..models import Feed, Item
 from . import http
 from .discovery import parse_feed, parse_links
-from .sanitize import clean_html, clean_text, plain_to_html, text_snippet
+from .sanitize import clean_html, clean_text, first_image, plain_to_html, text_snippet
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ ACCEPT = (
     "application/rss+xml, application/atom+xml, application/feed+json, "
     "application/xml;q=0.9, text/xml;q=0.9, */*;q=0.5"
 )
-ITEM_UPDATE_FIELDS = ["title", "content", "summary", "url", "author", "image", "enclosures"]
+ITEM_UPDATE_FIELDS = ["title", "content", "summary", "url", "author", "image", "thumbnail", "enclosures"]
 LOCK_PATH = settings.BASE_DIR / ".fetch.lock"
 
 
@@ -144,7 +144,9 @@ def _entry_media(entry):
         if _safe_url(t.get("url")):
             thumb = thumb or t["url"]
             break
-    return enclosures, thumb
+    # Podcast episode artwork (<itunes:image href="…">).
+    episode_art = _safe_url((entry.get("image") or {}).get("href", ""))
+    return enclosures, thumb or episode_art
 
 
 def normalize_entries(entries, now):
@@ -169,6 +171,7 @@ def normalize_entries(entries, now):
             "content": content,
             "summary": text_snippet(content),
             "image": thumb[:2000] if thumb and "<img" not in content else "",
+            "thumbnail": (thumb or first_image(content))[:2000],
             "enclosures": enclosures,
             "published": _entry_date(entry, now),
         }
