@@ -165,3 +165,7 @@ deploy/                 systemd units, nginx vhost, runbook, update script
   person's scale.
 - Fetching full article text for feeds that publish only summaries.
 - Sharing, comments, multiple users.
+
+## License
+
+[MIT](LICENSE)
