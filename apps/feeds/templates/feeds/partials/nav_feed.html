@@ -1,5 +1,5 @@
 {% load reader_tags %}<li class="feed{% if feed.unread %} has-unread{% endif %}{% if feed.is_failing %} failing{% endif %}">
-  <a class="nav-item" href="{{ feed.get_absolute_url }}" data-scope="feed:{{ feed.pk }}"{% if feed.is_failing %} title="Not updating: {{ feed.last_error }}"{% endif %}>
+  <a class="nav-item" href="{{ feed.get_absolute_url }}" data-scope="feed:{{ feed.pk }}" draggable="true"{% if feed.is_failing %} title="Not updating: {{ feed.last_error }}"{% endif %}>
     {% include "feeds/partials/favicon.html" %}
     <span class="label">{{ feed.name }}</span>
     <span class="count" data-count="feed:{{ feed.pk }}" data-n="{{ feed.unread }}">{{ feed.unread|unreadcount }}</span>

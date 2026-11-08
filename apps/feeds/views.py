@@ -353,6 +353,26 @@ def feed_update(request, pk):
 
 @login_required
 @require_POST
+def feed_move(request, pk):
+    """Drag and drop in the sidebar: move a feed into a folder, out of one, or into a new one."""
+    feed = get_object_or_404(Feed.objects.defer("icon"), pk=pk)
+    new_name = request.POST.get("new_folder", "").strip()[:200]
+    folder_id = request.POST.get("folder", "")
+    if new_name:
+        folder = Folder.objects.filter(name__iexact=new_name).first() or Folder.objects.create(name=new_name)
+    elif folder_id:
+        if not folder_id.isdigit():
+            return JsonResponse({"error": "bad folder"}, status=400)
+        folder = get_object_or_404(Folder, pk=int(folder_id))
+    else:
+        folder = None
+    feed.folder = folder
+    feed.save(update_fields=["folder"])
+    return JsonResponse({"feed": feed.pk, "folder": folder.pk if folder else None, "folder_name": folder.name if folder else ""})
+
+
+@login_required
+@require_POST
 def feed_fetch(request, pk):
     feed = get_object_or_404(Feed.objects.defer("icon"), pk=pk)
     stats = fetcher.fetch_feeds([feed], workers=1)

@@ -29,7 +29,7 @@
     <button class="twisty" type="button" data-action="toggle-folder" aria-label="Expand or collapse {{ folder.name }}" aria-expanded="true">
       <svg class="ico"><use href="#i-chevron"/></svg>
     </button>
-    <a class="nav-item" href="{{ folder.get_absolute_url }}" data-scope="folder:{{ folder.pk }}">
+    <a class="nav-item" href="{{ folder.get_absolute_url }}" data-scope="folder:{{ folder.pk }}" draggable="false">
       <svg class="ico"><use href="#i-folder"/></svg>
       <span class="label">{{ folder.name }}</span>
       <span class="count" data-count="folder:{{ folder.pk }}" data-n="{{ folder.unread }}">{{ folder.unread|unreadcount }}</span>
@@ -41,3 +41,7 @@
   {% endfor %}
   {% for feed in loose_feeds %}{% include "feeds/partials/nav_feed.html" %}{% endfor %}
 </ul>
+
+{# Shown only while a feed is being dragged (see reader.js). #}
+<div class="drop-zone drop-unfiled" data-drop="unfiled">Drop here to take it out of its folder</div>
+<div class="drop-zone drop-new-folder" data-drop="new-folder"><svg class="ico"><use href="#i-plus"/></svg> Drop here for a new folder</div>

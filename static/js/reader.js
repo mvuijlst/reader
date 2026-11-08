@@ -401,6 +401,96 @@
     }
   }
 
+  // --- drag feeds into folders ------------------------------------------------
+  // Drop on a folder (its row or any feed inside it) to move the feed there; the
+  // drop zones under the list take it out of its folder or into a new one.
+
+  const sidebar = $('#sidebar');
+  let dragged = null;       // { id, folder, name } of the feed being dragged
+  let dropHighlight = null;
+
+  function dropTargetFor(el) {
+    if (!dragged || !el?.closest) return null;
+    const folder = el.closest('#nav-tree li.folder');
+    if (folder) {
+      if (folder.dataset.folder === dragged.folder) return null;  // already there
+      return { el: folder, folder: folder.dataset.folder, name: $(':scope > .nav-item .label', folder)?.textContent.trim() };
+    }
+    const zone = el.closest('#nav-tree .drop-zone');
+    if (zone?.dataset.drop === 'new-folder') return { el: zone, newFolder: true };
+    if (zone?.dataset.drop === 'unfiled' && dragged.folder) return { el: zone, folder: '' };
+    return null;
+  }
+
+  function highlightDrop(el) {
+    if (dropHighlight === el) return;
+    dropHighlight?.classList.remove('drop-target');
+    dropHighlight = el;
+    el?.classList.add('drop-target');
+  }
+
+  sidebar.addEventListener('dragstart', (e) => {
+    const link = e.target.closest?.('li.feed > a.nav-item');
+    if (!link) return;
+    const li = link.closest('li.feed');
+    dragged = {
+      id: link.dataset.scope.split(':')[1],
+      folder: li.closest('li.folder')?.dataset.folder || '',
+      name: $('.label', link)?.textContent.trim() || 'feed',
+    };
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('application/x-reader-feed', dragged.id);
+    li.classList.add('dragging');
+    document.body.classList.add('dragging-feed');
+    document.body.classList.toggle('dragging-filed', !!dragged.folder);
+  });
+
+  sidebar.addEventListener('dragover', (e) => {
+    const target = dropTargetFor(e.target);
+    highlightDrop(target?.el || null);
+    if (!target) return;
+    e.preventDefault();  // allow the drop
+    e.dataTransfer.dropEffect = 'move';
+  });
+
+  sidebar.addEventListener('dragleave', (e) => {
+    if (!sidebar.contains(e.relatedTarget)) highlightDrop(null);
+  });
+
+  function endDrag() {
+    dragged = null;
+    highlightDrop(null);
+    document.body.classList.remove('dragging-feed', 'dragging-filed');
+    for (const el of $$('#nav-tree li.dragging')) el.classList.remove('dragging');
+  }
+
+  sidebar.addEventListener('drop', async (e) => {
+    const target = dropTargetFor(e.target);
+    const feed = dragged;
+    // Clean up here too: if the sidebar refreshed mid-drag, dragend fires on a
+    // detached element and never reaches the document.
+    endDrag();
+    if (!target || !feed) return;
+    e.preventDefault();
+    let data = { folder: target.folder };
+    if (target.newFolder) {
+      const name = (window.prompt(`New folder for ${feed.name}:`) || '').trim();
+      if (!name) return;
+      data = { new_folder: name };
+    }
+    try {
+      const res = await post(`/api/feeds/${feed.id}/move/`, data);
+      // Items already on screen now count towards the new folder.
+      for (const item of $$(`#items > .item[data-feed="${feed.id}"]`)) item.dataset.folder = res.folder ?? '';
+      toast(res.folder ? `Moved ${feed.name} to ${res.folder_name}.` : `Moved ${feed.name} out of its folder.`);
+      refreshNav();
+    } catch (err) {
+      toast("Couldn't move that feed.");
+    }
+  });
+
+  document.addEventListener('dragend', endDrag);
+
   // --- help -----------------------------------------------------------------
 
   function toggleHelp() {

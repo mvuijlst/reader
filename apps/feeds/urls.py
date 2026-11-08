@@ -28,6 +28,7 @@ urlpatterns = [
     path("opml/import/", views.opml_import, name="opml-import"),
     # JSON endpoints used by reader.js
     path("api/items/<int:pk>/", views.item_state, name="item-state"),
+    path("api/feeds/<int:pk>/move/", views.feed_move, name="feed-move"),
     path("api/mark-all-read/", views.mark_all_read, name="mark-all-read"),
     path("api/prefs/", views.set_prefs, name="prefs"),
 ]

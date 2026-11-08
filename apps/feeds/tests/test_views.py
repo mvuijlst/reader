@@ -135,6 +135,31 @@ class ReaderViewTests(TestCase):
         self.assertEqual(self.other.folder.name, "Fresh")
         self.assertEqual(self.other.name, "Renamed")
 
+    def test_move_feed(self):
+        url = reverse("feeds:feed-move", args=[self.other.pk])
+        data = self.client.post(url, {"folder": self.folder.pk}).json()
+        self.assertEqual(data, {"feed": self.other.pk, "folder": self.folder.pk, "folder_name": "Tech"})
+        self.other.refresh_from_db()
+        self.assertEqual(self.other.folder, self.folder)
+
+        # Out of its folder.
+        self.assertIsNone(self.client.post(url, {"folder": ""}).json()["folder"])
+        self.other.refresh_from_db()
+        self.assertIsNone(self.other.folder)
+
+        # Into a new folder; an existing name (any case) is reused, not duplicated.
+        data = self.client.post(url, {"new_folder": "Comics"}).json()
+        self.assertEqual(data["folder_name"], "Comics")
+        data2 = self.client.post(url, {"new_folder": "comics"}).json()
+        self.assertEqual(data2["folder"], data["folder"])
+        self.assertEqual(Folder.objects.filter(name__iexact="comics").count(), 1)
+
+        self.assertEqual(self.client.post(url, {"folder": "9999"}).status_code, 404)
+        self.assertEqual(self.client.post(url, {"folder": "x"}).status_code, 400)
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.client.logout()
+        self.assertEqual(self.client.post(url, {"folder": ""}).status_code, 302)
+
     def test_unsubscribe_deletes_items(self):
         self.client.post(reverse("feeds:feed-unsubscribe", args=[self.feed.pk]))
         self.assertFalse(Item.objects.filter(feed_id=self.feed.pk).exists())

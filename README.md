@@ -37,8 +37,10 @@ timer. One person, one server, all your reading history in one file.
   that offer the same feed as RSS, Atom and JSON don't make you pick.
 - YouTube channels, `@handles` and playlists work, including from EU servers that
   get YouTube's consent page.
-- Folders, renaming, and per-feed stats on the Manage page (items per week, latest
-  item, unread/total, fetch errors).
+- Folders: drag a feed onto a folder in the sidebar to move it there. Drop zones
+  appear while you drag, to take it out of its folder or start a new one.
+- Renaming and per-feed stats on the Manage page (items per week, latest item,
+  unread/total, fetch errors).
 - OPML import and export, which works with Google Takeout's `subscriptions.xml`,
   Feedly, Inoreader, NetNewsWire, Miniflux and FreshRSS.
 
