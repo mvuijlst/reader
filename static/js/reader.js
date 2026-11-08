@@ -295,6 +295,18 @@
     if (opensOnSite(item) && stream()?.dataset.unreadOnly === '1') dismiss(item);
   }
 
+  // The eye button: mark a post read without opening it (and, with "new items"
+  // showing, take it out of the list); on a read post, mark it unread again.
+  function disregard(item) {
+    if (!item) return;
+    if (item.classList.contains('unread')) {
+      setRead(item, true, { explicit: true });
+      if (stream()?.dataset.unreadOnly === '1') dismiss(item);
+    } else {
+      setRead(item, false, { explicit: true });
+    }
+  }
+
   function dismiss(item) {
     if (!item.isConnected || item.classList.contains('leaving')) return;
     const line = main.getBoundingClientRect().top + headHeight() + 16;
@@ -617,6 +629,7 @@
       case 'card-prev': move(-1); return;
       case 'card-close': closeOverlay(); return;
       case 'star': e.preventDefault(); e.stopPropagation(); toggleStar(item); return;
+      case 'disregard': e.preventDefault(); e.stopPropagation(); disregard(item); return;
       case 'read': toggleRead(item); return;
       case 'toggle': toggleOpen(item); return;
       case 'open-original': openedOriginal(item); return;  // let the link open

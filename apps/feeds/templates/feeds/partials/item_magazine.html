@@ -25,6 +25,7 @@
     </div>
     {% endif %}
   </div>
+  {% include "feeds/partials/disregard_btn.html" with extra=" mag-read" %}
   <button class="star-btn mag-star" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>
   <template>{% include "feeds/partials/entry_body.html" %}</template>
 </article>

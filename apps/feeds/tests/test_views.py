@@ -205,6 +205,16 @@ class ReaderViewTests(TestCase):
         self.client.post(manage, {"open_on_site": "0", "next": url})
         self.assertNotContains(self.client.get(url), "stream-offer")
 
+    def test_disregard_button_in_every_view(self):
+        url = reverse("feeds:all")
+        # Per item: in the row or entry title; cards and magazine also carry one in
+        # the hidden copy of the article that the reading panel shows.
+        for mode, per_item in (("expanded", 1), ("list", 1), ("cards", 2), ("magazine", 2)):
+            self.client.post(reverse("feeds:prefs"), {"view_mode": mode}, HTTP_X_REQUESTED_WITH="fetch")
+            response = self.client.get(url)
+            expected = per_item * len(response.context["items"])
+            self.assertContains(response, 'data-action="disregard"', count=expected, msg_prefix=mode)
+
     def test_search(self):
         response = self.client.get(reverse("feeds:search"), {"q": "zebra"})
         self.assertEqual([i.title for i in response.context["items"]], ["Something about zebras"])

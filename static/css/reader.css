@@ -401,6 +401,18 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 }
 .star-btn .ico { width: 16px; height: 16px; }
 .star-btn:hover { color: var(--star); }
+/* "Disregard": mark read without opening (crossed-out eye); on a read item an
+   open eye that marks it unread again. */
+.read-btn {
+  display: inline-grid; place-items: center; flex: none;
+  width: 26px; height: 26px; padding: 0;
+  color: var(--muted); background: none; border: 0; border-radius: 5px; cursor: pointer;
+}
+.read-btn .ico { width: 16px; height: 16px; }
+.read-btn:hover { color: var(--text); background: var(--hover); }
+.item:not(.unread) .read-btn { opacity: 0.7; }
+.entry-title .read-btn { margin: 2px 0 0 -6px; }
+.foot-actions { display: inline-flex; align-items: center; gap: 2px; }
 .starred .star-btn, .starred .act-star { color: var(--star); }
 .starred .star-btn .ico, .starred .act-star .ico { fill: currentColor; }
 
@@ -572,6 +584,17 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 }
 .mag:hover .mag-star, .mag-star:focus-visible, .mag.starred .mag-star { opacity: 1; }
 .mag-star:hover { color: var(--star); }
+.mag-read {
+  position: absolute; top: 10px; right: 48px; z-index: 2;
+  width: 32px; height: 32px;
+  color: #fff; background: rgba(0, 0, 0, 0.45); border-radius: 50%;
+  opacity: 0; transition: opacity 0.15s ease;
+}
+.mag:hover .mag-read, .mag-read:focus-visible { opacity: 1; }
+.mag-read:hover { color: #fff; background: rgba(0, 0, 0, 0.7); }
+@media (hover: none) {
+  .mag-star, .mag-read { opacity: 1; }  /* no hover on touch screens */
+}
 
 @container (min-width: 560px) {
   .view-magazine #items { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; }

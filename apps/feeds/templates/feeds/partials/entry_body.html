@@ -1,6 +1,6 @@
 {% load reader_tags %}<div class="entry-card">
   <h2 class="entry-title">
-    {% if not in_list %}<button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>{% endif %}
+    {% if not in_list %}<button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>{% include "feeds/partials/disregard_btn.html" %}{% endif %}
     {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener noreferrer" data-action="open-original">{{ item.title|default:"(untitled)" }}</a>{% else %}<span>{{ item.title|default:"(untitled)" }}</span>{% endif %}
   </h2>
   <div class="entry-meta">

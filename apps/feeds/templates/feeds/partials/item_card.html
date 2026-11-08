@@ -10,7 +10,7 @@
   </div>
   <div class="card-foot">
     <span class="foot-left"><time datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|readerdate }}</time>{% if item.feed.open_on_site and item.url %}<span class="site-note"><svg class="ico site-ico"><use href="#i-external"/></svg>{{ item.url|domain }}</span>{% endif %}</span>
-    <button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>
+    <span class="foot-actions">{% include "feeds/partials/disregard_btn.html" %}<button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button></span>
   </div>
   <template>{% include "feeds/partials/entry_body.html" %}</template>
 </article>
