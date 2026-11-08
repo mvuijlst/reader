@@ -29,6 +29,7 @@
   <td class="actions">
     <button class="btn btn-sm" type="button" hx-post="{% url 'feeds:feed-fetch' feed.pk %}" hx-include="none" title="Fetch now"><svg class="ico"><use href="#i-refresh"/></svg></button>
     <button class="btn btn-sm btn-danger" type="button" hx-post="{% url 'feeds:feed-unsubscribe' feed.pk %}" hx-include="none"
-            hx-confirm="Unsubscribe from {{ feed.name }}? Its items, starred ones included, are deleted.">Unsubscribe</button>
+            hx-confirm="Its items are deleted, starred ones included."
+            data-confirm-title="Unsubscribe from {{ feed.name }}?" data-confirm-label="Unsubscribe">Unsubscribe</button>
   </td>
 </tr>

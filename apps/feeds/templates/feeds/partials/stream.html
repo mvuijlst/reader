@@ -18,10 +18,11 @@
     {% endif %}
 
     <div class="toolbar">
-      <div class="seg" role="group" aria-label="View">
-        <button type="button" data-action="view" data-value="expanded" aria-pressed="{% if prefs.view_mode == 'expanded' %}true{% else %}false{% endif %}" title="Expanded view (1)" aria-label="Expanded view"><svg class="ico show-sm"><use href="#i-view-expanded"/></svg><span class="hide-sm">Expanded</span></button>
-        <button type="button" data-action="view" data-value="list" aria-pressed="{% if prefs.view_mode == 'list' %}true{% else %}false{% endif %}" title="List view (2)" aria-label="List view"><svg class="ico show-sm"><use href="#i-view-list"/></svg><span class="hide-sm">List</span></button>
-        <button type="button" data-action="view" data-value="cards" aria-pressed="{% if prefs.view_mode == 'cards' %}true{% else %}false{% endif %}" title="Card view (3)" aria-label="Card view"><svg class="ico show-sm"><use href="#i-view-cards"/></svg><span class="hide-sm">Cards</span></button>
+      {# Labels on wide panes, icons on narrower ones, inside the ⋯ menu on phones. #}
+      <div class="seg seg-views" role="group" aria-label="View">
+        {% for value, label, key in view_options %}
+        <button type="button" data-action="view" data-value="{{ value }}" aria-pressed="{% if prefs.view_mode == value %}true{% else %}false{% endif %}" title="{{ label }} view ({{ key }})" aria-label="{{ label }} view"><svg class="ico view-icon"><use href="#i-view-{{ value }}"/></svg><span class="view-label">{{ label }}</span></button>
+        {% endfor %}
       </div>
 
       {% if unread_count is not None %}
@@ -41,6 +42,12 @@
       <details class="menu">
         <summary class="icon-btn" title="More actions" aria-label="More actions"><svg class="ico"><use href="#i-more"/></svg></summary>
         <div class="menu-panel">
+          <div class="menu-views" role="group" aria-label="View">
+            {% for value, label, key in view_options %}
+            <button class="menu-item" type="button" data-action="view" data-value="{{ value }}" aria-pressed="{% if prefs.view_mode == value %}true{% else %}false{% endif %}"><svg class="ico"><use href="#i-view-{{ value }}"/></svg>{{ label }}</button>
+            {% endfor %}
+            <hr>
+          </div>
           <button class="menu-item" type="button" data-action="sort" data-value="{{ prefs.oldest_first|yesno:'0,1' }}">
             Sort {% if prefs.oldest_first %}newest{% else %}oldest{% endif %} first
           </button>
@@ -67,7 +74,7 @@
             <button class="btn btn-sm" type="submit">Save</button>
           </form>
           <p class="menu-note"><a href="{{ feed.url }}" target="_blank" rel="noopener noreferrer">Feed address</a>{% if feed.last_success_at %} · updated {{ feed.last_success_at|readerdatetime }}{% endif %}</p>
-          <form method="post" action="{% url 'feeds:feed-unsubscribe' feed.pk %}" data-confirm="Unsubscribe from {{ feed.name }}? Its items, starred ones included, are deleted.">
+          <form method="post" action="{% url 'feeds:feed-unsubscribe' feed.pk %}" data-confirm-title="Unsubscribe from {{ feed.name }}?" data-confirm="Its items are deleted, starred ones included." data-confirm-label="Unsubscribe">
             {% csrf_token %}
             <button class="menu-item danger" type="submit">Unsubscribe</button>
           </form>
@@ -78,7 +85,7 @@
             <label>Folder name <input type="text" name="name" value="{{ folder.name }}" maxlength="200" required></label>
             <button class="btn btn-sm" type="submit">Rename</button>
           </form>
-          <form method="post" action="{% url 'feeds:folder-delete' folder.pk %}" data-confirm="Delete the folder {{ folder.name }}? Its feeds stay subscribed, outside any folder.">
+          <form method="post" action="{% url 'feeds:folder-delete' folder.pk %}" data-confirm-title="Delete the folder {{ folder.name }}?" data-confirm="Its feeds stay subscribed, outside any folder." data-confirm-label="Delete folder">
             {% csrf_token %}
             <button class="menu-item danger" type="submit">Delete folder</button>
           </form>

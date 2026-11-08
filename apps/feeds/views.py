@@ -16,7 +16,7 @@ from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_POST
 
 from .models import Feed, Folder, Item, Preferences
-from .services import discovery, fetcher, opml
+from .services import discovery, fetcher, magazine, opml
 
 log = logging.getLogger(__name__)
 
@@ -109,14 +109,28 @@ def _stream(request, kind, obj=None):
             items = items.filter(Q(published__gt=when) | Q(published=when, id__gt=pk))
     order = ("-published", "-id") if newest_first else ("published", "id")
     page_size = settings.READER_PAGE_SIZE
-    page = list(items.order_by(*order)[: page_size + 1])
-    has_more = len(page) > page_size
-    page = page[:page_size]
+
+    params = request.GET.copy()
+    if prefs.view_mode == Preferences.VIEW_MAGAZINE:
+        # Pages end on whole collage blocks (up to 3 items past the page size),
+        # and the next page continues the block cycle where this one stopped.
+        fetched = list(items.order_by(*order)[: page_size + 4])
+        try:
+            block = max(0, int(request.GET.get("mb", 0)))
+        except ValueError:
+            block = 0
+        page, consumed, params["mb"] = magazine.layout(fetched, block, page_size)
+        last = fetched[consumed - 1] if consumed else None
+        has_more = consumed < len(fetched)
+    else:
+        page = list(items.order_by(*order)[: page_size + 1])
+        has_more = len(page) > page_size
+        page = page[:page_size]
+        last = page[-1] if page else None
 
     next_url = None
-    if has_more:
-        params = request.GET.copy()
-        params["after"] = f"{page[-1].published.isoformat()}~{page[-1].pk}"
+    if has_more and last:
+        params["after"] = f"{last.published.isoformat()}~{last.pk}"
         next_url = f"{request.path}?{params.urlencode()}"
 
     ctx = {
@@ -133,6 +147,8 @@ def _stream(request, kind, obj=None):
         "unread_count": unread_count,
         "unread_only": unread_only,
         "show_source": kind != "feed",
+        # (value, label, keyboard shortcut) for the view switchers
+        "view_options": [(value, label, n) for n, (value, label) in enumerate(Preferences.VIEW_CHOICES, 1)],
     }
     if cursor:
         return render(request, "feeds/partials/items.html", ctx)

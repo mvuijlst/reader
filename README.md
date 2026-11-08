@@ -19,6 +19,11 @@ timer. One person, one server, all your reading history in one file.
 - **Card view**: a grid of cards with each item's picture (media thumbnail, podcast
   artwork, or the first real image in the article), title and snippet. Items open in
   a reading panel, and `j`/`k` page through the cards from inside it.
+- **Magazine view**: a collage. A large featured post with two smaller ones beside
+  it, rows of three, and a wide feature now and then, with serif headlines. Only
+  posts with a picture are featured. Portrait pictures are shown whole on a backdrop
+  rather than cropped. Feed names show in folders and All items, not inside a single
+  feed. Posts open in the same reading panel as cards.
 - Show new items or all items, newest or oldest first, with infinite scroll.
 - Search across every item you've ever fetched.
 - Podcast enclosures get an audio player, and YouTube entries show their thumbnail.
@@ -71,7 +76,7 @@ Press `?` in the app for this list.
 | `space` | page down, then next item | `v` | open original in a new tab |
 | `o` / `enter` | open / close item (list, cards) | `shift+a` | mark all as read |
 | `shift+n` / `shift+p` | next / previous subscription | `r` | refresh |
-| `shift+o` | open highlighted subscription | `1` / `2` / `3` | expanded / list / card view |
+| `shift+o` | open highlighted subscription | `1` – `4` | expanded / list / card / magazine |
 | `shift+x` | expand / collapse folder | `u` | hide / show sidebar |
 | `g` `a` | go to all items | `a` | add a subscription |
 | `g` `s` | go to starred items | `/` | search |

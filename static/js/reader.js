@@ -27,6 +27,8 @@
   const view = () => stream()?.dataset.view || 'expanded';
   const isList = () => view() === 'list';
   const isCards = () => view() === 'cards';
+  const isMagazine = () => view() === 'magazine';
+  const usesOverlay = () => isCards() || isMagazine();  // items open in the reading overlay
   const isExpanded = () => view() === 'expanded';
   const items = () => $$('#items > .item');
   const overlay = $('#card-reader');
@@ -232,7 +234,7 @@
     current = item;
     item.classList.add('current');
     if (isList() && open) expand(item);
-    if (isCards() && open) showInOverlay(item);
+    if (usesOverlay() && open) showInOverlay(item);
     if (scroll) scrollToItem(item);
     if (read && (isExpanded() || open)) setRead(item, true);
   }
@@ -248,13 +250,13 @@
     }
     // j/k open the next item (list row inline, card in the overlay); n/p only
     // move the highlight, unless the card overlay is already showing.
-    const open = (isList() && read) || (isCards() && (read || overlayOpen()));
+    const open = (isList() && read) || (usesOverlay() && (read || overlayOpen()));
     select(target, { open, read });
   }
 
   function toggleOpen(item) {
     if (!item) return;
-    if (isCards()) {
+    if (usesOverlay()) {
       if (overlayOpen() && item === current) closeOverlay();
       else select(item, { open: true });
       return;
@@ -284,10 +286,30 @@
   // into a text card instead of showing a broken image.
   document.addEventListener('error', (e) => {
     const img = e.target;
-    if (img.tagName !== 'IMG' || !img.closest('.card-media')) return;
-    img.closest('.card')?.classList.add('card-text-only');
-    img.closest('.card-media').remove();
+    if (img.tagName !== 'IMG') return;
+    if (img.closest('.card-media')) {
+      img.closest('.card')?.classList.add('card-text-only');
+      img.closest('.card-media').remove();
+    } else if (img.closest('.mag-media')) {
+      // Magazine: fall back to the tinted backdrop (with the snippet on small cards).
+      const media = img.closest('.mag-media');
+      img.closest('.mag')?.classList.add('mag-noimg');
+      for (const el of $$('img', media)) el.remove();
+    }
   }, true);
+
+  // Card and magazine pictures: landscape and square ones are cropped to fill the
+  // card (CSS default). Portrait ones (at least 5% taller than wide) are shown
+  // whole on a blurred copy of themselves instead.
+  function fitPicture(img) {
+    if (!img.classList?.contains('pic-img') || !img.naturalWidth) return;
+    const portrait = img.naturalWidth / img.naturalHeight < 0.95;
+    img.closest('.pic')?.classList.toggle('pic-portrait', portrait);
+  }
+  document.addEventListener('load', (e) => { if (e.target.tagName === 'IMG') fitPicture(e.target); }, true);
+  const fitLoadedPictures = (root = document) => {
+    for (const img of $$('img.pic-img', root)) if (img.complete) fitPicture(img);
+  };
 
   // Expanded view: an item becomes current (and read) once its top scrolls
   // under the toolbar, the way Google Reader did it.
@@ -316,7 +338,14 @@
     const scope = s.dataset.scope;
     const n = +($('.js-unread-count')?.dataset.n || 0);
     if (!n) { toast('Nothing to mark.'); return; }
-    if (scope === 'all' && !confirm(`Mark all ${n} items as read?`)) return;
+    if (scope === 'all') {
+      const ok = await appConfirm({
+        title: `Mark all ${n} items as read?`,
+        message: 'Every feed, not just one folder. Items that arrive after you loaded this page stay unread.',
+        confirmLabel: 'Mark as read',
+      });
+      if (!ok) return;
+    }
     try {
       const res = await post('/api/mark-all-read/', { scope, max_id: s.dataset.maxId });
       toast(`Marked ${res.marked} item${res.marked === 1 ? '' : 's'} as read.`);
@@ -474,7 +503,12 @@
     e.preventDefault();
     let data = { folder: target.folder };
     if (target.newFolder) {
-      const name = (window.prompt(`New folder for ${feed.name}:`) || '').trim();
+      const name = await appPrompt({
+        title: 'New folder',
+        message: `Move ${feed.name} into a new folder called:`,
+        placeholder: 'Folder name',
+        confirmLabel: 'Create folder',
+      });
       if (!name) return;
       data = { new_folder: name };
     }
@@ -543,6 +577,7 @@
       if (e.key === 'Escape') target.blur();
       return;
     }
+    if ($('#app-dialog')?.open) return;  // the dialog handles its own keys
     if ($('#help').open && e.key !== '?') return;
     // Letters: Shift decides the case, not Caps Lock or how the event was synthesized.
     const key = /^[a-z]$/i.test(e.key) ? (e.shiftKey ? e.key.toUpperCase() : e.key.toLowerCase()) : e.key;
@@ -574,6 +609,7 @@
       case '1': if (!isExpanded()) { closeOverlay(); setPrefs({ view_mode: 'expanded' }); } break;
       case '2': if (!isList()) { closeOverlay(); setPrefs({ view_mode: 'list' }); } break;
       case '3': if (!isCards()) setPrefs({ view_mode: 'cards' }); break;
+      case '4': if (!isMagazine()) setPrefs({ view_mode: 'magazine' }); break;
       case 'N': navMove(1); break;
       case 'P': navMove(-1); break;
       case 'O': navOpen(); break;
@@ -614,6 +650,8 @@
       navCursor = null;
       applyNavState();
     }
+    // Cached pictures can finish loading before their load listener sees them.
+    fitLoadedPictures(main);
   });
 
   document.body.addEventListener('htmx:responseError', () => toast('The server had a problem with that.'));
@@ -625,4 +663,5 @@
   setTimeout(() => $('.flash')?.classList.add('gone'), 5000);
 
   applyNavState();
+  fitLoadedPictures(main);
 })();

@@ -60,7 +60,7 @@
           <button class="btn btn-sm" type="submit">Rename</button>
           <button class="btn btn-sm btn-danger" type="submit" form="delete-folder-{{ f.pk }}">Delete</button>
         </form>
-        <form id="delete-folder-{{ f.pk }}" method="post" action="{% url 'feeds:folder-delete' f.pk %}" data-confirm="Delete the folder {{ f.name }}? Its feeds stay subscribed, outside any folder." hidden>
+        <form id="delete-folder-{{ f.pk }}" method="post" action="{% url 'feeds:folder-delete' f.pk %}" data-confirm-title="Delete the folder {{ f.name }}?" data-confirm="Its feeds stay subscribed, outside any folder." data-confirm-label="Delete folder" hidden>
           {% csrf_token %}<input type="hidden" name="next" value="{% url 'feeds:manage' %}">
         </form>
         {% empty %}

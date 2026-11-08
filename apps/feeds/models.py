@@ -119,7 +119,13 @@ class Preferences(models.Model):
     VIEW_EXPANDED = "expanded"
     VIEW_LIST = "list"
     VIEW_CARDS = "cards"
-    VIEW_CHOICES = [(VIEW_EXPANDED, "Expanded"), (VIEW_LIST, "List"), (VIEW_CARDS, "Cards")]
+    VIEW_MAGAZINE = "magazine"
+    VIEW_CHOICES = [
+        (VIEW_EXPANDED, "Expanded"),
+        (VIEW_LIST, "List"),
+        (VIEW_CARDS, "Cards"),
+        (VIEW_MAGAZINE, "Magazine"),
+    ]
 
     view_mode = models.CharField(max_length=10, choices=VIEW_CHOICES, default=VIEW_EXPANDED)
     unread_only = models.BooleanField(default=True)

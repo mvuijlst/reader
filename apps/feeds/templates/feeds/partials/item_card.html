@@ -1,7 +1,7 @@
 {% load reader_tags %}<article class="item card{% if not item.is_read %} unread{% endif %}{% if item.is_starred %} starred{% endif %}{% if not item.thumbnail %} card-text-only{% endif %}"
   id="item-{{ item.pk }}" data-id="{{ item.pk }}" data-feed="{{ item.feed_id }}" data-folder="{{ item.feed.folder_id|default_if_none:'' }}" data-url="{{ item.url }}">
   <div class="card-hit" data-action="toggle">
-    {% if item.thumbnail %}<div class="card-media"><img src="{{ item.thumbnail }}" alt="" loading="lazy" decoding="async"></div>{% endif %}
+    {% if item.thumbnail %}<div class="card-media pic"><img class="pic-backdrop" src="{{ item.thumbnail }}" alt="" aria-hidden="true" loading="lazy" decoding="async"><img class="pic-img" src="{{ item.thumbnail }}" alt="" loading="lazy" decoding="async"></div>{% endif %}
     <div class="card-text">
       {% if show_source %}<div class="card-source">{% include "feeds/partials/favicon.html" with feed=item.feed %}<span>{{ item.feed.name }}</span></div>{% endif %}
       <h3 class="card-title">{{ item.title|default:"(untitled)" }}</h3>

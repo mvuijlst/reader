@@ -114,6 +114,33 @@ class ReaderViewTests(TestCase):
         self.client.post(reverse("feeds:prefs"), {"view_mode": "bogus"}, HTTP_X_REQUESTED_WITH="fetch")
         self.assertEqual(Preferences.load().view_mode, "cards")
 
+    def test_magazine_view(self):
+        Item.objects.filter(feed=self.feed).update(thumbnail="https://example.com/pic.jpg")
+        self.client.post(reverse("feeds:prefs"), {"view_mode": "magazine"}, HTTP_X_REQUESTED_WITH="fetch")
+        self.assertEqual(Preferences.load().view_mode, "magazine")
+
+        # Folder view: feed names shown. READER_PAGE_SIZE is 5 here, and the page
+        # runs on to the end of the block (hero block 3 + row 3 = 6 items).
+        response = self.client.get(reverse("feeds:folder", args=[self.folder.pk]))
+        self.assertContains(response, 'class="stream view-magazine"')
+        self.assertContains(response, "mag-hero", count=1)
+        self.assertContains(response, 'class="mag-pill">Feed A<')
+        self.assertContains(response, 'class="mag-source">Feed A<')
+        self.assertEqual(len(response.context["items"]), 6)
+        next_url = response.context["next_url"]
+        self.assertIn("mb=2", next_url)
+
+        # The next page continues the cycle with its second row: the last two items.
+        more = self.client.get(next_url)
+        self.assertEqual([i.title for i in more.context["items"]], ["Item 6", "Item 7"])
+        self.assertNotContains(more, "mag-featured")
+        self.assertIsNone(more.context["next_url"])
+
+        # Single feed view: no feed names on the cards.
+        response = self.client.get(reverse("feeds:feed", args=[self.feed.pk]))
+        self.assertNotContains(response, "mag-pill")
+        self.assertNotContains(response, "mag-source")
+
     def test_search(self):
         response = self.client.get(reverse("feeds:search"), {"q": "zebra"})
         self.assertEqual([i.title for i in response.context["items"]], ["Something about zebras"])

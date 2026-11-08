@@ -20,7 +20,9 @@
   --shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
   --radius: 7px;
   --font: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --tint: #2a1d15;
   color-scheme: dark;
 }
 
@@ -41,6 +43,7 @@
   --danger: #c23b3b;
   --ok: #2f8a4f;
   --shadow: 0 14px 36px rgba(40, 30, 20, 0.14);
+  --tint: #fbe3d3;
   color-scheme: light;
 }
 
@@ -277,6 +280,17 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
   transition: background 0.12s ease, color 0.12s ease;
 }
 .seg button + button { border-left: 1px solid var(--border-strong); }
+.view-icon, .menu-views { display: none; }
+.menu-views .menu-item { display: flex; align-items: center; gap: 10px; }
+.menu-views .menu-item[aria-pressed="true"] { color: var(--accent); font-weight: 650; }
+@container stream (max-width: 760px) {
+  .seg-views .view-label { display: none; }
+  .seg-views .view-icon { display: inline-block; width: 17px; height: 17px; }
+}
+@container stream (max-width: 480px) {
+  .seg-views { display: none; }
+  .menu-views { display: block; }
+}
 .seg button:hover { color: var(--text); }
 .seg button[aria-pressed="true"] { color: var(--text); background: var(--surface-2); font-weight: 650; }
 
@@ -362,8 +376,7 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 .card:hover { border-color: var(--border-strong); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16); transform: translateY(-1px); }
 .item.card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .card-hit { flex: 1; display: flex; flex-direction: column; cursor: pointer; }
-.card-media { aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-2); }
-.card-media img { display: block; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s ease; }
+.card-media { aspect-ratio: 16 / 9; background: var(--surface-2); }
 .card-text { display: grid; gap: 6px; padding: 12px 14px 4px; }
 .card-source {
   display: flex; align-items: center; gap: 6px; min-width: 0;
@@ -388,6 +401,141 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 .card.unread .card-foot time::before {
   content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 7px;
   vertical-align: 1px; border-radius: 50%; background: var(--accent);
+}
+
+/* --- pictures on cards (card and magazine views) ------------------------------ */
+/* Landscape and square pictures are cropped to fill the card. A portrait picture
+   is shown whole, with a soft shadow, on a blurred copy of itself; reader.js
+   adds .pic-portrait once it knows the picture's shape. */
+
+.pic { position: relative; overflow: hidden; }
+.pic-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; max-width: none;
+  object-fit: cover;
+  transition: transform 0.4s ease, opacity 0.2s ease;
+}
+.pic-backdrop { display: none; }
+.pic-portrait .pic-backdrop {
+  display: block; position: absolute; inset: -12%;
+  width: 124%; height: 124%; max-width: none;  /* oversized so the blurred edges stay out of view */
+  object-fit: cover;
+  filter: blur(22px) saturate(1.15);
+  transform: scale(1.02);
+}
+.pic-portrait .pic-img {
+  object-fit: contain;
+  /* drop-shadow follows the visible picture, not the letterboxed box */
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.35));
+}
+
+/* --- magazine view ----------------------------------------------------------- */
+
+/* The stream is a size container, so the collage (and the toolbar) react to the
+   reading pane's width (the sidebar takes part of the window), not the viewport's. */
+.stream { container: stream / inline-size; }
+.view-magazine #items {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 30px 24px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.view-magazine #items > .more, .view-magazine #items > .end, .view-magazine #items > .empty { grid-column: 1 / -1; }
+
+.mag { position: relative; display: flex; flex-direction: column; min-width: 0; }
+.item.mag.current { box-shadow: none; }
+.mag-hit { flex: 1; display: flex; flex-direction: column; gap: 12px; cursor: pointer; }
+.mag-media {
+  position: relative; overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--surface-2);
+  border-radius: 12px;
+  transition: box-shadow 0.15s ease;
+}
+.item.mag.current .mag-media { box-shadow: 0 0 0 3px var(--accent); }
+.mag-hit:hover .pic-img { transform: scale(1.025); }
+.mag:not(.unread) .mag-media img { opacity: 0.6; }
+
+/* Posts without a picture show their opening lines on a tinted, faintly
+   patterned backdrop. */
+.mag-noimg .mag-media {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' fill='none' stroke='%23e8875a' stroke-opacity='.3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 34a13 13 0 0 1 13 13M16 23a24 24 0 0 1 24 24'/%3E%3Ccircle cx='17' cy='46' r='1.6' fill='%23e8875a' fill-opacity='.3'/%3E%3Cpath d='m112 14 3.6 7.3 8 1.2-5.8 5.6 1.4 8-7.2-3.8-7.2 3.8 1.4-8-5.8-5.6 8-1.2z'/%3E%3Crect x='66' y='70' width='24' height='18' rx='3'/%3E%3Cpath d='M71 76h14M71 82h9'/%3E%3Cpath d='M18 112a9 9 0 0 1 18 0M18 112v6h4v-6zM36 112v6h-4v-6z'/%3E%3Cpath d='M108 108h15v7a7.5 7.5 0 0 1-15 0zM123 110h3a3 3 0 0 1 0 6h-3'/%3E%3C/svg%3E")
+    0 0 / 150px 150px,
+    var(--tint);
+}
+.mag-quote {
+  position: absolute; inset: 0;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden;
+  margin: 0; padding: 20px 22px;
+  font-family: var(--serif); font-size: 17px; font-style: italic; line-height: 1.45;
+  color: var(--text);
+}
+.mag:not(.mag-noimg) .mag-quote { display: none; }
+
+.mag-text { display: grid; gap: 4px; }
+.mag-meta { font-size: 13px; color: var(--muted); }
+.mag-source { font-weight: 600; color: var(--text-2); }
+.mag-title {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+  font-family: var(--serif); font-size: 21px; font-weight: 600; line-height: 1.22; letter-spacing: -0.005em;
+  color: var(--text);
+}
+.mag:not(.unread) .mag-text .mag-title { color: var(--text-2); font-weight: 500; }
+
+/* Featured: picture fills the card, text on a gradient over it. */
+.mag-featured .mag-hit { gap: 0; }
+.mag-featured .mag-media { aspect-ratio: 4 / 3; }
+.mag-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  padding: 16px 20px 20px;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.8));
+}
+.mag-pill {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: 12.5px; font-weight: 600;
+  color: #fff; background: rgba(0, 0, 0, 0.55);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+.mag-overlay-text { margin-top: auto; display: grid; gap: 6px; }
+.mag-overlay time { font-size: 13px; opacity: 0.85; }
+.mag-featured .mag-title { color: #fff; -webkit-line-clamp: 3; }
+.mag-hero .mag-title { font-size: clamp(24px, 3.6cqi, 40px); line-height: 1.12; }
+.mag-wide .mag-title { font-size: clamp(22px, 2.9cqi, 32px); line-height: 1.15; }
+.mag-snippet {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  font-size: 15px; line-height: 1.45; color: rgba(255, 255, 255, 0.88);
+}
+.mag-featured.mag-noimg .mag-overlay { background: none; color: var(--text); }
+.mag-featured.mag-noimg .mag-title { color: var(--text); }
+.mag-featured.mag-noimg .mag-snippet { color: var(--text-2); }
+.mag-featured.mag-noimg .mag-pill { color: var(--text-2); background: var(--surface); }
+
+.mag-star {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  width: 32px; height: 32px;
+  color: #fff; background: rgba(0, 0, 0, 0.45); border-radius: 50%;
+  opacity: 0; transition: opacity 0.15s ease;
+}
+.mag:hover .mag-star, .mag-star:focus-visible, .mag.starred .mag-star { opacity: 1; }
+.mag-star:hover { color: var(--star); }
+
+@container (min-width: 560px) {
+  .view-magazine #items { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; }
+  .mag-featured { grid-column: span 2; }
+  .mag-featured .mag-media { aspect-ratio: 16 / 8; }
+}
+@container (min-width: 860px) {
+  .view-magazine #items { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row; }
+  .mag-hero { grid-row: span 2; }
+  /* Featured cards take the height of the small cards beside them. */
+  .mag-featured .mag-media { aspect-ratio: auto; flex: 1; min-height: 240px; }
 }
 
 .card-reader {
@@ -497,6 +645,24 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 .flash.gone { opacity: 0; translate: -50% 12px; pointer-events: none; }
 .toast { opacity: 0; translate: -50% 12px; pointer-events: none; transition: opacity 0.2s ease, translate 0.2s ease; }
 .toast.show { opacity: 1; translate: -50% 0; }
+
+.app-dialog {
+  width: min(420px, calc(100vw - 32px));
+  padding: 0;
+  color: var(--text); background: var(--surface);
+  border: 1px solid var(--border-strong); border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.app-dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+.app-dialog[open] { animation: dialogIn 0.16s ease; }
+@keyframes dialogIn { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+.app-dialog-form { display: grid; gap: 10px; padding: 22px 22px 18px; }
+.app-dialog-title { font-size: 17px; font-weight: 700; line-height: 1.3; letter-spacing: -0.01em; }
+.app-dialog-message { font-size: 14px; line-height: 1.5; color: var(--text-2); }
+.app-dialog-input { margin-top: 2px; }
+.app-dialog-actions { display: flex; flex-direction: row-reverse; justify-content: flex-start; gap: 8px; margin-top: 8px; }
+.app-dialog-actions .btn:disabled { opacity: 0.45; cursor: default; filter: none; }
+.app-dialog.is-danger #app-dialog-ok { background: var(--danger); color: #fff; }
 
 .help {
   width: min(860px, calc(100vw - 32px)); max-height: calc(100dvh - 48px);
@@ -610,6 +776,7 @@ table.subs { width: 100%; border-collapse: collapse; font-size: 13px; }
   .show-sm { display: inline-block; }
   .seg .ico { width: 17px; height: 17px; }
   .view-cards #items { gap: 12px; padding: 12px; }
+  .view-magazine #items { gap: 26px; padding: 14px 12px; }
   .card-reader { width: 100vw; height: 100dvh; border: 0; border-radius: 0; }
   .card-reader-scroll { padding: 18px 16px 40px; }
   .brand span { display: none; }

@@ -12,12 +12,26 @@
   <script src="{% static 'js/base.js' %}"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap">
   <link rel="stylesheet" href="{% static 'css/reader.css' %}">
 </head>
 <body class="{% block body_class %}{% endblock %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   {% include "feeds/partials/icons.html" %}
   {% block body %}{% endblock %}
+
+  {# In-app replacement for confirm() and prompt(); driven by appConfirm/appPrompt in base.js. #}
+  <dialog class="app-dialog" id="app-dialog" aria-labelledby="app-dialog-title" aria-describedby="app-dialog-message">
+    <form method="dialog" class="app-dialog-form">
+      <h2 class="app-dialog-title" id="app-dialog-title"></h2>
+      <p class="app-dialog-message" id="app-dialog-message"></p>
+      <input type="text" class="app-dialog-input" id="app-dialog-input" autocomplete="off" maxlength="200" hidden>
+      <div class="app-dialog-actions">
+        {# OK comes first in the markup so Enter in the text field picks it; CSS puts it on the right. #}
+        <button class="btn btn-primary" type="submit" value="ok" id="app-dialog-ok">OK</button>
+        <button class="btn btn-outline" type="submit" value="cancel" id="app-dialog-cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
   <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
   {% block scripts %}{% endblock %}
 </body>
