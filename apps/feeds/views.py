@@ -40,9 +40,18 @@ def sidebar_context(scope=""):
     counts = dict(
         Item.objects.filter(is_read=False).order_by().values_list("feed_id").annotate(n=Count("id"))
     )
+    # Podcasts (most items carry audio) get their own fallback icon.
+    podcasts = {
+        row["feed_id"]
+        for row in Item.objects.order_by().values("feed_id").annotate(
+            total=Count("id"), audio=Count("id", filter=~Q(enclosures=[]))
+        )
+        if row["audio"] * 2 >= row["total"] > 0
+    }
     by_folder = defaultdict(list)
     for feed in feeds:
         feed.unread = counts.get(feed.pk, 0)
+        feed.is_podcast = feed.pk in podcasts
         by_folder[feed.folder_id].append(feed)
     for group in by_folder.values():
         group.sort(key=lambda f: f.name.lower())
@@ -431,13 +440,18 @@ def feed_unsubscribe(request, pk):
 @require_POST
 def folder_create(request):
     name = request.POST.get("name", "").strip()[:200]
+    created = False
     if not name:
-        messages.error(request, "A folder needs a name.")
+        level, text = messages.ERROR, "A folder needs a name."
     elif Folder.objects.filter(name__iexact=name).exists():
-        messages.info(request, f"There's already a folder called {name}.")
+        level, text = messages.INFO, f"There's already a folder called {name}."
     else:
         Folder.objects.create(name=name)
-        messages.success(request, f"Created folder {name}.")
+        created = True
+        level, text = messages.SUCCESS, f"Created folder {name}."
+    if request.headers.get("X-Requested-With") == "fetch":  # the sidebar's "New folder" action
+        return JsonResponse({"created": created, "message": text}, status=200 if name else 400)
+    messages.add_message(request, level, text)
     return redirect(safe_next(request, "feeds:manage"))
 
 

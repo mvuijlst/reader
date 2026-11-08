@@ -181,17 +181,22 @@ body.fullscreen .sidebar, body.fullscreen .topbar { display: none; }
 .subscribe-form { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin-top: 10px; }
 .subscribe-form .hint { grid-column: 1 / -1; font-size: 12px; color: var(--muted); line-height: 1.4; }
 
+/* Explorer-style tree, after VS Code: compact square rows, chevrons on folders,
+   indent guides, type icons on feeds, section actions on hover. Rows run the
+   full width of the sidebar (hence the negative margins). */
+.nav-group, .tree, .tree-head { margin-left: -8px; margin-right: -8px; }
 .nav-group { padding-bottom: 6px; }
 .nav-item {
-  display: flex; align-items: center; gap: 9px;
-  min-height: 30px; padding: 4px 10px;
-  color: var(--text-2); text-decoration: none;
-  border-radius: 6px;
-  transition: background 0.12s ease;
+  position: relative;
+  display: flex; align-items: center; gap: 6px;
+  height: 24px; padding: 0 12px 0 8px;
+  font-size: 13px; color: var(--text-2); text-decoration: none;
+  transition: background 0.1s ease;
 }
 .nav-item:hover { background: var(--hover); }
+.nav-item > .ico { width: 16px; height: 16px; }
 .nav-item .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nav-item .count { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.nav-item .count { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--muted); }
 .nav-item .count:empty { display: none; }
 .nav-item.has-unread .label, .has-unread > .nav-item .label,
 .nav-item.has-unread .count, .has-unread > .nav-item .count { color: var(--text); font-weight: 650; }
@@ -199,34 +204,62 @@ body.fullscreen .sidebar, body.fullscreen .topbar { display: none; }
 .nav-item.selected { background: var(--accent-soft); color: var(--text); }
 .nav-item.selected > .ico { color: var(--accent); }
 .nav-item.nav-cursor { box-shadow: inset 0 0 0 1px var(--accent); }
-
-.nav-heading {
-  display: flex; align-items: baseline; justify-content: space-between;
-  margin: 14px 10px 6px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
-}
-.nav-heading .link-btn { text-transform: none; letter-spacing: 0; font-weight: 600; }
-.nav-heading .when-filtered, .hide-read .nav-heading .when-all { display: none; }
-.hide-read .nav-heading .when-filtered { display: inline; }
-.nav-empty { margin: 4px 10px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.nav-empty { margin: 4px 2px; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .nav-empty a { color: var(--accent); }
 
-.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree-head { display: flex; align-items: center; height: 26px; margin-top: 8px; padding: 0 6px 0 4px; }
+.tree-head-toggle {
+  flex: 1; min-width: 0; height: 100%;
+  display: flex; align-items: center; gap: 2px; padding: 0;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-2); background: none; border: 0; cursor: pointer;
+}
+.tree-head-toggle .ico { width: 16px; height: 16px; transform: rotate(90deg); transition: transform 0.12s ease; }
+.tree-collapsed .tree-head-toggle .ico { transform: none; }
+.tree-collapsed .tree, .tree-collapsed .nav-empty { display: none; }
+.tree-actions { display: flex; opacity: 0; transition: opacity 0.12s ease; }
+.sidebar:hover .tree-actions, .tree-actions:focus-within, .hide-read .tree-actions { opacity: 1; }
+.tree-action {
+  display: grid; place-items: center; width: 22px; height: 22px; padding: 0;
+  color: var(--muted); background: none; border: 0; border-radius: 4px; cursor: pointer;
+}
+.tree-action:hover { color: var(--text); background: var(--hover); }
+.tree-action .ico { width: 15px; height: 15px; }
+.tree-action[aria-pressed="true"] { color: var(--accent); }
+
+.tree, .tree ul { list-style: none; margin-top: 0; margin-bottom: 0; padding: 0; }
 .folder { position: relative; }
 .folder > .nav-item { padding-left: 28px; }
 .twisty {
-  position: absolute; left: 2px; top: 4px; z-index: 1;
-  display: grid; place-items: center; width: 24px; height: 22px; padding: 0;
-  color: var(--muted); background: none; border: 0; border-radius: 4px; cursor: pointer;
+  position: absolute; left: 8px; top: 0; z-index: 1;
+  display: grid; place-items: center; width: 16px; height: 24px; padding: 0;
+  color: var(--muted); background: none; border: 0; cursor: pointer;
 }
 .twisty:hover { color: var(--text); }
-.twisty .ico { width: 14px; height: 14px; transform: rotate(90deg); transition: transform 0.15s ease; }
+.twisty .ico { width: 16px; height: 16px; transform: rotate(90deg); transition: transform 0.12s ease; }
 .folder.collapsed > .twisty .ico { transform: none; }
 .folder.collapsed > .feeds { display: none; }
-.feeds .nav-item { padding-left: 34px; }
+/* Indent guide under an open folder, brighter while the tree is hovered and for
+   the folder holding the selected feed. */
+.feeds { position: relative; }
+.feeds::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 16px; width: 1px;
+  background: var(--border-strong); opacity: 0.5; pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+.tree:hover .feeds::before, .folder.is-selected > .feeds::before { opacity: 1; }
+.folder.is-selected > .feeds::before { background: var(--muted); }
+.feeds .nav-item { padding-left: 26px; }
 .failing .nav-item .label { color: var(--danger); font-weight: 400; }
 .hide-read li.feed:not(.has-unread):not(.is-selected),
 .hide-read li.folder:not(.has-unread):not(.is-selected) { display: none; }
+
+@media (pointer: coarse) {
+  .nav-item { height: 34px; font-size: 14px; }
+  .twisty { height: 34px; }
+  .tree-actions { opacity: 1; }
+  .tree-action { width: 32px; height: 32px; }
+}
 
 /* Drag and drop feeds into folders */
 li.feed.dragging > .nav-item { opacity: 0.4; }
@@ -245,11 +278,6 @@ body.dragging-feed .drop-new-folder, body.dragging-filed .drop-unfiled { display
 body.dragging-feed .hide-read li.folder { display: block !important; }
 
 .favicon { width: 16px; height: 16px; flex: none; border-radius: 3px; object-fit: contain; }
-.favicon-letter {
-  display: inline-grid; place-items: center;
-  font-size: 10px; font-weight: 700; line-height: 1;
-  color: var(--muted); background: var(--surface-2);
-}
 
 /* --- stream header ------------------------------------------------------- */
 
@@ -363,6 +391,8 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 .row-body .entry-title { font-size: 20px; }
 
 .item.current { box-shadow: inset 3px 0 0 var(--accent); }
+/* An item leaving the "new items" list after being opened on its site. */
+.item.leaving { opacity: 0; transform: scale(0.98); pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease; }
 
 .star-btn {
   display: inline-grid; place-items: center; flex: none;
@@ -549,7 +579,8 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
   .mag-featured .mag-media { aspect-ratio: 16 / 8; }
 }
 @container (min-width: 860px) {
-  .view-magazine #items { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row; }
+  /* dense: an item leaving the list mustn't leave a hole in the collage */
+  .view-magazine #items { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row dense; }
   .mag-hero { grid-row: span 2; }
   /* Featured cards take the height of the small cards beside them. */
   .mag-featured .mag-media { aspect-ratio: auto; flex: 1; min-height: 240px; }

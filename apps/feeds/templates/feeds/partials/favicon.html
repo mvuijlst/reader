@@ -1,1 +1,1 @@
-{% if feed.has_icon %}<img class="favicon" src="{% url 'feeds:icon' feed.pk %}?v={{ feed.icon_checked_at|date:'U' }}" alt="" width="16" height="16" loading="lazy" draggable="false">{% else %}<span class="favicon favicon-letter" aria-hidden="true">{{ feed.name|first|upper }}</span>{% endif %}
+{% if feed.has_icon %}<img class="favicon" src="{% url 'feeds:icon' feed.pk %}?v={{ feed.icon_checked_at|date:'U' }}" alt="" width="16" height="16" loading="lazy" draggable="false">{% else %}<svg class="favicon" aria-hidden="true"><use href="#i-kind-{{ feed.kind }}"/></svg>{% endif %}

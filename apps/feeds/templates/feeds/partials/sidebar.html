@@ -12,11 +12,18 @@
   </a>
 </div>
 
-<div class="nav-heading">
-  <span>Subscriptions</span>
-  <button class="link-btn" type="button" data-action="toggle-read-feeds" title="Show only feeds with new items">
-    <span class="when-all">Hide read</span><span class="when-filtered">Show all</span>
+{# Explorer-style section header: collapses the tree; actions show on hover, like VS Code's. #}
+<div class="tree-head">
+  <button class="tree-head-toggle" type="button" data-action="toggle-tree" aria-expanded="true">
+    <svg class="ico"><use href="#i-chevron"/></svg><span>Subscriptions</span>
   </button>
+  <div class="tree-actions">
+    <button class="tree-action" type="button" data-action="subscribe" title="Subscribe (a)" aria-label="Subscribe"><svg class="ico"><use href="#i-file-plus"/></svg></button>
+    <button class="tree-action" type="button" data-action="new-folder" title="New folder" aria-label="New folder"><svg class="ico"><use href="#i-folder-plus"/></svg></button>
+    <button class="tree-action" type="button" data-action="reload" title="Refresh (r)" aria-label="Refresh"><svg class="ico"><use href="#i-refresh"/></svg></button>
+    <button class="tree-action" type="button" data-action="toggle-read-feeds" title="Show only feeds with new items" aria-label="Show only feeds with new items" aria-pressed="false"><svg class="ico"><use href="#i-filter"/></svg></button>
+    <button class="tree-action" type="button" data-action="collapse-all" title="Collapse folders" aria-label="Collapse folders"><svg class="ico"><use href="#i-collapse-all"/></svg></button>
+  </div>
 </div>
 
 {% if not has_feeds %}
@@ -30,7 +37,6 @@
       <svg class="ico"><use href="#i-chevron"/></svg>
     </button>
     <a class="nav-item" href="{{ folder.get_absolute_url }}" data-scope="folder:{{ folder.pk }}" draggable="false">
-      <svg class="ico"><use href="#i-folder"/></svg>
       <span class="label">{{ folder.name }}</span>
       <span class="count" data-count="folder:{{ folder.pk }}" data-n="{{ folder.unread }}">{{ folder.unread|unreadcount }}</span>
     </a>

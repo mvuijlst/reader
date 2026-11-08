@@ -95,6 +95,7 @@ class ReaderViewTests(TestCase):
         Item.objects.filter(pk=self.items[0].pk).update(is_read=True)
         response = self.client.get(reverse("feeds:feed", args=[self.feed.pk]) + "?x=1")
         self.assertNotIn(self.items[0], response.context["items"])
+        self.assertContains(response, 'data-unread-only="1"')  # reader.js removes opened-on-site items
         self.client.post(reverse("feeds:prefs"), {"unread_only": "0"}, HTTP_X_REQUESTED_WITH="fetch")
         self.assertFalse(Preferences.load().unread_only)
         response = self.client.get(reverse("feeds:feed", args=[self.feed.pk]))
@@ -212,6 +213,34 @@ class ReaderViewTests(TestCase):
         response = self.client.get(reverse("feeds:sidebar"))
         self.assertContains(response, 'data-count="folder:%d" data-n="8"' % self.folder.pk)
         self.assertContains(response, 'data-count="all" data-n="9"')
+
+    def test_sidebar_type_icons(self):
+        yt = Feed.objects.create(url="https://www.youtube.com/feeds/videos.xml?channel_id=UC123", title="Channel")
+        pod = Feed.objects.create(url="https://pod.example/feed", title="Pod")
+        for n in range(3):
+            make_item(pod, n, enclosures=[{"url": f"https://pod.example/{n}.mp3", "type": "audio/mpeg"}])
+        make_item(pod, 9)  # one episode without audio doesn't change what it is
+        response = self.client.get(reverse("feeds:sidebar"))
+        html = response.content.decode()
+        self.assertIn('<use href="#i-kind-youtube"/>', html)
+        self.assertIn('<use href="#i-kind-podcast"/>', html)
+        self.assertIn('<use href="#i-kind-rss"/>', html)  # Feed A and Feed B: no favicon
+        self.assertNotIn("favicon-letter", html)
+        self.assertEqual((yt.kind, Feed.objects.get(pk=pod.pk).kind), ("youtube", "rss"))  # podcast needs the sidebar's data
+        # Explorer-style header actions are there.
+        for action in ("toggle-tree", "subscribe", "new-folder", "reload", "toggle-read-feeds", "collapse-all"):
+            self.assertIn(f'data-action="{action}"', html)
+
+    def test_new_folder_from_sidebar(self):
+        url = reverse("feeds:folder-create")
+        data = self.client.post(url, {"name": "Reading"}, HTTP_X_REQUESTED_WITH="fetch").json()
+        self.assertEqual(data, {"created": True, "message": "Created folder Reading."})
+        data = self.client.post(url, {"name": "reading"}, HTTP_X_REQUESTED_WITH="fetch").json()
+        self.assertFalse(data["created"])
+        self.assertEqual(Folder.objects.filter(name__iexact="reading").count(), 1)
+        self.assertEqual(self.client.post(url, {"name": " "}, HTTP_X_REQUESTED_WITH="fetch").status_code, 400)
+        # The Manage page form still redirects.
+        self.assertEqual(self.client.post(url, {"name": "Later"}).status_code, 302)
 
     def test_manage_and_feed_update(self):
         self.assertEqual(self.client.get(reverse("feeds:manage")).status_code, 200)

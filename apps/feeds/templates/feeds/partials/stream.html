@@ -1,7 +1,7 @@
 {% load reader_tags %}
 <div id="stream" class="stream view-{{ prefs.view_mode }}"
      data-scope="{{ scope }}" data-view="{{ prefs.view_mode }}" data-max-id="{{ max_id }}"
-     data-mark-on-scroll="{{ prefs.mark_read_on_scroll|yesno:'1,0' }}" data-title="{{ title }}">
+     data-mark-on-scroll="{{ prefs.mark_read_on_scroll|yesno:'1,0' }}" data-unread-only="{{ unread_only|yesno:'1,0' }}" data-title="{{ title }}">
   <header class="stream-head">
     <div class="stream-title">
       {% if feed %}

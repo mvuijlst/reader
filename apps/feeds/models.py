@@ -82,6 +82,14 @@ class Feed(models.Model):
         return self.site_url or self.url
 
     @property
+    def kind(self):
+        """Feed type for its fallback icon when the site has no favicon:
+        'youtube', 'podcast' (set by the sidebar, which knows the items) or 'rss'."""
+        if "youtube.com/" in self.url:
+            return "youtube"
+        return "podcast" if getattr(self, "is_podcast", False) else "rss"
+
+    @property
     def domain(self):
         """The site's domain for labels like "Open on nytimes.com"."""
         host = urlsplit(self.site_url or self.url).hostname or ""

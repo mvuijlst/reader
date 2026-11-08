@@ -283,7 +283,42 @@
   function openOriginal(item) {
     if (!item?.dataset.url) return;
     window.open(item.dataset.url, '_blank', 'noopener,noreferrer');
-    setRead(item, true);
+    openedOriginal(item);
+  }
+
+  // The article was opened in another tab: that counts as read, even if the item
+  // was set to "keep unread". Items from open-on-site feeds are then done, so
+  // they also leave a "new items" list straight away.
+  function openedOriginal(item) {
+    if (!item) return;
+    setRead(item, true, { explicit: true });
+    if (opensOnSite(item) && stream()?.dataset.unreadOnly === '1') dismiss(item);
+  }
+
+  function dismiss(item) {
+    if (!item.isConnected || item.classList.contains('leaving')) return;
+    const line = main.getBoundingClientRect().top + headHeight() + 16;
+    const wasAtTop = isExpanded() && item.getBoundingClientRect().top <= line;
+    if (overlayOpen() && item === current) closeOverlay();  // it was showing this item
+    if (item === current) {
+      // Keep the j/k position: the previous item becomes current, so j goes on
+      // to whatever now follows.
+      item.classList.remove('current');
+      current = item.previousElementSibling?.classList.contains('item') ? item.previousElementSibling : null;
+      current?.classList.add('current');
+    }
+    item.classList.add('leaving');
+    setTimeout(() => {
+      const next = item.nextElementSibling;
+      item.remove();
+      // Expanded view: don't let the next item slide under the toolbar line,
+      // where scrolling would mark it read before you've seen it.
+      if (wasAtTop && next?.classList.contains('item')) {
+        const overshoot = line - next.getBoundingClientRect().top;
+        if (overshoot >= 0) main.scrollTop -= overshoot + 8;
+      }
+      if (!items().length && !$('#items .more')) reload();  // show the "no new items" state
+    }, 180);
   }
 
   function pageDown(up) {
@@ -379,9 +414,32 @@
       li.classList.toggle('collapsed', isCollapsed);
       $('.twisty', li)?.setAttribute('aria-expanded', String(!isCollapsed));
     }
-    $('#nav-tree')?.classList.toggle('hide-read', !!store.get('hideRead', false));
+    const tree = $('#nav-tree');
+    const hideRead = !!store.get('hideRead', false);
+    const treeCollapsed = !!store.get('treeCollapsed', false);
+    tree?.classList.toggle('hide-read', hideRead);
+    tree?.classList.toggle('tree-collapsed', treeCollapsed);
+    $('#nav-tree [data-action="toggle-read-feeds"]')?.setAttribute('aria-pressed', String(hideRead));
+    $('#nav-tree [data-action="toggle-tree"]')?.setAttribute('aria-expanded', String(!treeCollapsed));
     markSelected();
     updateTitle();
+  }
+
+  function collapseAllFolders() {
+    store.set('collapsed', $$('#nav-tree li.folder').map((li) => li.dataset.folder));
+    applyNavState();
+  }
+
+  async function newFolder() {
+    const name = await appPrompt({ title: 'New folder', placeholder: 'Folder name', confirmLabel: 'Create folder' });
+    if (!name) return;
+    try {
+      const res = await post('/folder/new/', { name });
+      toast(res.message);
+      refreshNav();
+    } catch (e) {
+      toast("Couldn't create that folder.");
+    }
   }
 
   function toggleFolder(li) {
@@ -561,7 +619,7 @@
       case 'star': e.preventDefault(); e.stopPropagation(); toggleStar(item); return;
       case 'read': toggleRead(item); return;
       case 'toggle': toggleOpen(item); return;
-      case 'open-original': setRead(item, true); return;  // let the link open
+      case 'open-original': openedOriginal(item); return;  // let the link open
       case 'view': setPrefs({ view_mode: control.dataset.value }); return;
       case 'unread-only': setPrefs({ unread_only: control.dataset.value }); return;
       case 'sort': control.closest('details')?.removeAttribute('open'); setPrefs({ oldest_first: control.dataset.value }); return;
@@ -570,6 +628,9 @@
       case 'reload': reload(); return;
       case 'toggle-folder': toggleFolder(control.closest('li.folder')); return;
       case 'toggle-read-feeds': store.set('hideRead', !store.get('hideRead', false)); applyNavState(); return;
+      case 'toggle-tree': store.set('treeCollapsed', !store.get('treeCollapsed', false)); applyNavState(); return;
+      case 'collapse-all': collapseAllFolders(); return;
+      case 'new-folder': newFolder(); return;
       case 'toggle-nav': toggleNav(); return;
       case 'subscribe': openSubscribe(); return;
       case 'help': toggleHelp(); return;
@@ -579,6 +640,12 @@
 
     // Close open menus when clicking elsewhere.
     for (const menu of $$('details.menu[open]')) if (!menu.contains(e.target)) menu.removeAttribute('open');
+  });
+
+  // Middle-click opens a link in a background tab without firing 'click'.
+  document.addEventListener('auxclick', (e) => {
+    if (e.button !== 1 || !e.target.closest('[data-action="open-original"]')) return;
+    openedOriginal(e.target.closest('#items .item') || (e.target.closest('#card-reader') ? current : null));
   });
 
   // --- keyboard -------------------------------------------------------------
