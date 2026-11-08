@@ -1,0 +1,34 @@
+{% load reader_tags %}<tr id="feed-row-{{ feed.pk }}"
+    hx-post="{% url 'feeds:feed-update' feed.pk %}" hx-trigger="change" hx-include="this"
+    hx-target="this" hx-swap="outerHTML">
+  <td class="name">
+    <div class="name-line">
+      {% include "feeds/partials/favicon.html" %}
+      <input type="text" name="custom_title" value="{{ feed.name }}" maxlength="500" aria-label="Name for {{ feed.name }}">
+    </div>
+    <a class="url" href="{{ feed.url }}" target="_blank" rel="noopener noreferrer" title="{{ feed.url }}">{{ feed.url }}</a>
+  </td>
+  <td>
+    <select name="folder" aria-label="Folder for {{ feed.name }}">
+      <option value="">No folder</option>
+      {% for f in all_folders %}<option value="{{ f.pk }}"{% if f.pk == feed.folder_id %} selected{% endif %}>{{ f.name }}</option>{% endfor %}
+    </select>
+  </td>
+  <td class="num">{{ feed.recent|per_week }}</td>
+  <td class="num">{% if feed.latest %}<span title="{{ feed.latest|readerdatetime }}">{{ feed.latest|ago }}</span>{% else %}–{% endif %}</td>
+  <td class="num"><a href="{{ feed.get_absolute_url }}">{{ feed.unread }}</a> / {{ feed.total }}</td>
+  <td>
+    {% if feed.last_error %}
+      <span class="status-bad" title="{{ feed.last_error }}">{% if feed.is_failing %}Failing{% else %}Error{% endif %} ×{{ feed.error_count }}: {{ feed.last_error|truncatechars:48 }}</span>
+    {% elif feed.last_success_at %}
+      <span class="status-ok" title="Last fetched {{ feed.last_success_at|readerdatetime }}">OK</span>
+    {% else %}
+      <span class="muted">Waiting for first fetch</span>
+    {% endif %}
+  </td>
+  <td class="actions">
+    <button class="btn btn-sm" type="button" hx-post="{% url 'feeds:feed-fetch' feed.pk %}" hx-include="none" title="Fetch now"><svg class="ico"><use href="#i-refresh"/></svg></button>
+    <button class="btn btn-sm btn-danger" type="button" hx-post="{% url 'feeds:feed-unsubscribe' feed.pk %}" hx-include="none"
+            hx-confirm="Unsubscribe from {{ feed.name }}? Its items, starred ones included, are deleted.">Unsubscribe</button>
+  </td>
+</tr>

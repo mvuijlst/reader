@@ -1,0 +1,34 @@
+{% load static %}
+<header class="topbar">
+  {% if reader_page %}
+  <button class="icon-btn nav-toggle" type="button" data-action="toggle-nav" aria-label="Show subscriptions">
+    <svg class="ico"><use href="#i-menu"/></svg>
+  </button>
+  {% endif %}
+  <a class="brand" href="{% url 'feeds:all' %}" title="All items">
+    <svg class="brand-mark"><use href="#i-rss"/></svg><span>Reader</span>
+  </a>
+  <form class="search" action="{% url 'feeds:search' %}" method="get" role="search"
+        {% if reader_page %}hx-get="{% url 'feeds:search' %}" hx-target="#main" hx-push-url="true"{% endif %}>
+    <svg class="ico"><use href="#i-search"/></svg>
+    <input type="search" name="q" id="search-input" value="{{ q }}" placeholder="Search all items" aria-label="Search all items" autocomplete="off">
+  </form>
+  <div class="topbar-actions">
+    {% if reader_page %}
+    <button class="icon-btn hide-sm" type="button" data-action="help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
+      <svg class="ico"><use href="#i-keyboard"/></svg>
+    </button>
+    {% endif %}
+    <button class="icon-btn" type="button" data-action="theme" title="Switch theme" aria-label="Switch theme">
+      <svg class="ico when-dark"><use href="#i-sun"/></svg>
+      <svg class="ico when-light"><use href="#i-moon"/></svg>
+    </button>
+    <a class="icon-btn" href="{% url 'feeds:manage' %}" title="Manage subscriptions" aria-label="Manage subscriptions">
+      <svg class="ico"><use href="#i-settings"/></svg>
+    </a>
+    <form method="post" action="{% url 'logout' %}" class="hide-sm">
+      {% csrf_token %}
+      <button class="icon-btn" type="submit" title="Sign out" aria-label="Sign out"><svg class="ico"><use href="#i-logout"/></svg></button>
+    </form>
+  </div>
+</header>

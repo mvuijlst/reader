@@ -1,0 +1,14 @@
+# /etc/systemd/system/reader-fetch.service — one polling run; started by reader-fetch.timer
+[Unit]
+Description=reader — fetch due feeds
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=django
+Group=django
+WorkingDirectory=/home/django/reader-yusupov/app
+ExecStart=/home/django/reader-yusupov/app/venv/bin/python manage.py fetch_feeds --wait 60
+Nice=10
+TimeoutStartSec=15min

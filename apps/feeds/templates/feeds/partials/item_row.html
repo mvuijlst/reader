@@ -1,0 +1,10 @@
+{% load reader_tags %}<article class="item row{% if not item.is_read %} unread{% endif %}{% if item.is_starred %} starred{% endif %}"
+  id="item-{{ item.pk }}" data-id="{{ item.pk }}" data-feed="{{ item.feed_id }}" data-folder="{{ item.feed.folder_id|default_if_none:'' }}" data-url="{{ item.url }}">
+  <div class="row-head" data-action="toggle">
+    <button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>
+    {% if show_source %}<span class="row-source">{{ item.feed.name }}</span>{% endif %}
+    <span class="row-text"><span class="row-title">{{ item.title|default:"(untitled)" }}</span>{% if item.summary %}<span class="row-snippet"> – {{ item.summary }}</span>{% endif %}</span>
+    <time class="row-date" datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|readerdate }}</time>
+  </div>
+  <template>{% include "feeds/partials/entry_body.html" with in_list=True %}</template>
+</article>

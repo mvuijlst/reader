@@ -1,0 +1,24 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="same-origin">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true,"scrollIntoViewOnBoost":false,"includeIndicatorStyles":false,"allowEval":false}'>
+  <meta name="theme-color" content="#141414">
+  <title>{% block title %}Reader{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/icon.svg' %}" type="image/svg+xml">
+  <script src="{% static 'js/base.js' %}"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap">
+  <link rel="stylesheet" href="{% static 'css/reader.css' %}">
+</head>
+<body class="{% block body_class %}{% endblock %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  {% include "feeds/partials/icons.html" %}
+  {% block body %}{% endblock %}
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,27 @@
+{% load reader_tags %}<div class="entry-card">
+  <h2 class="entry-title">
+    {% if not in_list %}<button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>{% endif %}
+    {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener noreferrer" data-action="open-original">{{ item.title|default:"(untitled)" }}</a>{% else %}<span>{{ item.title|default:"(untitled)" }}</span>{% endif %}
+  </h2>
+  <div class="entry-meta">
+    {% if show_source %}<a class="entry-source" href="{{ item.feed.get_absolute_url }}" hx-get="{{ item.feed.get_absolute_url }}" hx-target="#main" hx-push-url="true">{% include "feeds/partials/favicon.html" with feed=item.feed %}{{ item.feed.name }}</a>{% endif %}
+    {% if item.author %}<span class="entry-author">{% if show_source %}by {% endif %}{{ item.author }}</span>{% endif %}
+    <time datetime="{{ item.published|date:'c' }}">{{ item.published|readerdatetime }}</time>
+  </div>
+  <div class="entry-body">
+    {% if item.image %}<p class="entry-lead"><img src="{{ item.image }}" alt="" loading="lazy" decoding="async"></p>{% endif %}
+    {{ item.content|safe }}
+    {% for enc in item.enclosures %}
+    <div class="enclosure">
+      {% if enc.type|slice:":6" == "audio/" %}<audio controls preload="none" src="{{ enc.url }}"></audio>
+      {% elif enc.type|slice:":6" == "video/" %}<video controls preload="none" src="{{ enc.url }}"></video>{% endif %}
+      <a href="{{ enc.url }}" target="_blank" rel="noopener noreferrer">Download {{ enc.type|default:"attachment" }}{% if enc.length and enc.length != "0" %} ({{ enc.length|filesizeformat }}){% endif %}</a>
+    </div>
+    {% endfor %}
+  </div>
+  <footer class="entry-actions">
+    <button class="act act-star" type="button" data-action="star"><svg class="ico"><use href="#i-star"/></svg><span class="when-unstarred">Star</span><span class="when-starred">Starred</span></button>
+    <button class="act act-read" type="button" data-action="read"><svg class="ico"><use href="#i-eye"/></svg><span class="when-unread">Mark as read</span><span class="when-read">Keep unread</span></button>
+    {% if item.url %}<a class="act" href="{{ item.url }}" target="_blank" rel="noopener noreferrer" data-action="open-original"><svg class="ico"><use href="#i-external"/></svg>Open original</a>{% endif %}
+  </footer>
+</div>

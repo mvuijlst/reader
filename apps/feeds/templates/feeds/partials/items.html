@@ -1,0 +1,29 @@
+{% for item in items %}
+  {% if prefs.view_mode == "list" %}{% include "feeds/partials/item_row.html" %}{% else %}{% include "feeds/partials/item_entry.html" %}{% endif %}
+{% empty %}
+  {% if not is_continuation %}
+  <div class="empty">
+    {% if kind == "search" and not q %}
+      <p>Type in the search box to search every item you have.</p>
+    {% elif kind == "search" %}
+      <p>No items match <strong>{{ q }}</strong>.</p>
+    {% elif kind == "starred" %}
+      <p>No starred items yet.</p>
+      <p class="muted">Press <kbd>s</kbd> or click the star on any item to keep it here.</p>
+    {% elif unread_only and unread_count == 0 %}
+      <p>No new items here.</p>
+      <p><button class="link-btn" type="button" data-action="unread-only" data-value="0">Show all items</button></p>
+    {% else %}
+      <p>Nothing here yet.</p>
+      {% if kind == "all" %}<p class="muted">Subscribe to a feed and its items will show up here.</p>{% endif %}
+    {% endif %}
+  </div>
+  {% endif %}
+{% endfor %}
+{% if next_url %}
+  <div class="more" hx-get="{{ next_url }}" hx-trigger="intersect once" hx-target="this" hx-swap="outerHTML">
+    <span class="spinner" aria-hidden="true"></span> Loading more…
+  </div>
+{% elif items or is_continuation %}
+  <div class="end"><p>You've reached the end.</p></div>
+{% endif %}

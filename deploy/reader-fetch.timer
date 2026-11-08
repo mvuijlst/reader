@@ -1,0 +1,14 @@
+# /etc/systemd/system/reader-fetch.timer
+# Every 10 minutes; each run only fetches feeds that are due
+# (READER_FETCH_INTERVAL_MINUTES, 30 by default, longer for failing feeds).
+[Unit]
+Description=reader — poll feeds every 10 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+RandomizedDelaySec=30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

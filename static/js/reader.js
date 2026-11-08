@@ -1,0 +1,470 @@
+// Reader: keyboard navigation, read/star state, unread counts, scroll-to-read.
+// The server renders everything; this file only adds behaviour on top.
+(() => {
+  'use strict';
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const main = $('#main');
+  if (!main) return;
+
+  const store = {
+    get(key, fallback) {
+      try { const v = localStorage.getItem('reader.' + key); return v === null ? fallback : JSON.parse(v); }
+      catch (e) { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem('reader.' + key, JSON.stringify(value)); } catch (e) { /* ignore */ }
+    },
+  };
+
+  let current = null;     // the current item (<article class="item">)
+  let navCursor = null;   // sidebar entry highlighted with shift+n / shift+p
+  let gPrefix = false;    // waiting for the second key of a "g x" chord
+  let gTimer = null;
+
+  const stream = () => $('#stream');
+  const isList = () => stream()?.dataset.view === 'list';
+  const items = () => $$('#items > .item');
+  const markOnScroll = () => stream()?.dataset.markOnScroll === '1';
+
+  // --- server calls ---------------------------------------------------------
+
+  async function post(url, data) {
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'X-CSRFToken': $('meta[name="csrf-token"]').content,
+        'X-Requested-With': 'fetch',
+      },
+      body: new URLSearchParams(data),
+    });
+    if (response.redirected && response.url.includes('/login/')) {
+      window.location.reload();  // session expired
+      throw new Error('signed out');
+    }
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return response.status === 204 ? null : response.json();
+  }
+
+  function reload() {
+    if (!stream()) return;
+    htmx.ajax('GET', location.pathname + location.search, { target: '#main', swap: 'innerHTML' });
+    refreshNav();
+  }
+
+  function refreshNav() { htmx.trigger(document.body, 'refresh-nav'); }
+
+  function go(url) { htmx.ajax('GET', url, { target: '#main', swap: 'innerHTML' }).then(() => history.pushState({}, '', url)); }
+
+  async function setPrefs(data) {
+    try { await post('/api/prefs/', data); reload(); }
+    catch (e) { toast("Couldn't save that setting."); }
+  }
+
+  // --- toast ----------------------------------------------------------------
+
+  let toastTimer = null;
+  function toast(message) {
+    const el = $('#toast');
+    el.textContent = message;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+  }
+
+  // --- unread counts ----------------------------------------------------------
+
+  function formatCount(n) { return n <= 0 ? '' : n > 1000 ? '1000+' : String(n); }
+
+  function setCount(el, n) {
+    n = Math.max(0, n);
+    el.dataset.n = n;
+    el.textContent = formatCount(n);
+    (el.closest('li') || el.closest('.nav-item'))?.classList.toggle('has-unread', n > 0);
+  }
+
+  function adjustCounts(item, delta) {
+    const keys = ['all', 'feed:' + item.dataset.feed];
+    if (item.dataset.folder) keys.push('folder:' + item.dataset.folder);
+    for (const key of keys) {
+      for (const el of $$(`[data-count="${key}"]`)) setCount(el, (+el.dataset.n || 0) + delta);
+    }
+    const head = $('.js-unread-count');
+    if (head) { const n = Math.max(0, (+head.dataset.n || 0) + delta); head.dataset.n = n; head.textContent = n; }
+    updateTitle();
+  }
+
+  function adjustStarred(delta) {
+    const el = $('[data-starred-count]');
+    if (!el) return;
+    const n = Math.max(0, (+el.dataset.n || 0) + delta);
+    el.dataset.n = n;
+    el.textContent = n || '';
+  }
+
+  function updateTitle() {
+    const n = +($('[data-count="all"]')?.dataset.n || 0);
+    const name = stream()?.dataset.title || 'Reader';
+    document.title = (n ? `(${formatCount(n)}) ` : '') + name + ' – Reader';
+  }
+
+  // --- item state -----------------------------------------------------------
+
+  async function setRead(item, read, { explicit = false } = {}) {
+    if (!item) return;
+    const unread = item.classList.contains('unread');
+    if (read !== unread) return;  // already in that state
+    if (read && item.dataset.kept && !explicit) return;  // "keep unread" sticks
+    if (!read) item.dataset.kept = '1'; else delete item.dataset.kept;
+    item.classList.toggle('unread', !read);
+    adjustCounts(item, read ? -1 : 1);
+    try {
+      await post(`/api/items/${item.dataset.id}/`, { read: read ? 1 : 0 });
+    } catch (e) {
+      item.classList.toggle('unread', read);
+      adjustCounts(item, read ? 1 : -1);
+      toast("Couldn't save — are you offline?");
+    }
+  }
+
+  function toggleRead(item) {
+    if (item) setRead(item, item.classList.contains('unread'), { explicit: true });
+  }
+
+  async function toggleStar(item) {
+    if (!item) return;
+    const on = !item.classList.contains('starred');
+    item.classList.toggle('starred', on);
+    adjustStarred(on ? 1 : -1);
+    try {
+      await post(`/api/items/${item.dataset.id}/`, { starred: on ? 1 : 0 });
+    } catch (e) {
+      item.classList.toggle('starred', !on);
+      adjustStarred(on ? -1 : 1);
+      toast("Couldn't save — are you offline?");
+    }
+  }
+
+  // --- current item, opening, scrolling ---------------------------------------
+
+  // Height of the toolbar covering the top of the pane (it scrolls away on phones).
+  function headHeight() {
+    const head = $('.stream-head');
+    return head && getComputedStyle(head).position === 'sticky' ? head.offsetHeight : 0;
+  }
+
+  function expand(item) {
+    if (item.classList.contains('open')) return;
+    const tpl = $('template', item);
+    if (!tpl) return;
+    const body = document.createElement('div');
+    body.className = 'row-body';
+    body.append(tpl.content.cloneNode(true));
+    item.append(body);
+    item.classList.add('open');
+    htmx.process(body);
+  }
+
+  function collapse(item) {
+    item.classList.remove('open');
+    $('.row-body', item)?.remove();
+  }
+
+  function scrollToItem(item) {
+    const offset = item.getBoundingClientRect().top - main.getBoundingClientRect().top;
+    const top = main.scrollTop + offset - headHeight();
+    if (isList() && !item.classList.contains('open')) {
+      // List rows: only scroll when the row is out of view.
+      const rect = item.getBoundingClientRect();
+      const view = main.getBoundingClientRect();
+      if (rect.top < view.top + headHeight()) main.scrollTop = top - 4;
+      else if (rect.bottom > view.bottom) main.scrollTop += rect.bottom - view.bottom + 4;
+      return;
+    }
+    main.scrollTop = top - (isList() ? 0 : 12);
+  }
+
+  function select(item, { open = false, read = true, scroll = true } = {}) {
+    if (!item) return;
+    if (current && current !== item) {
+      current.classList.remove('current');
+      if (isList()) collapse(current);
+    }
+    current = item;
+    item.classList.add('current');
+    if (isList() && open) expand(item);
+    if (scroll) scrollToItem(item);
+    if (read && (!isList() || open)) setRead(item, true);
+  }
+
+  function move(direction, { read = true } = {}) {
+    const list = items();
+    if (!list.length) return;
+    let index = current ? list.indexOf(current) : -1;
+    const target = index === -1 ? (direction > 0 ? list[0] : null) : list[index + direction];
+    if (!target) {
+      if (direction > 0) $('#items .more')?.scrollIntoView({ block: 'end' });
+      return;
+    }
+    select(target, { open: isList() && read, read });
+  }
+
+  function toggleOpen(item) {
+    if (!item || !isList()) return;
+    if (item !== current) { select(item, { open: true }); return; }
+    if (item.classList.contains('open')) { collapse(item); scrollToItem(item); }
+    else { expand(item); scrollToItem(item); setRead(item, true); }
+  }
+
+  function openOriginal(item) {
+    if (!item?.dataset.url) return;
+    window.open(item.dataset.url, '_blank', 'noopener,noreferrer');
+    setRead(item, true);
+  }
+
+  function pageDown(up) {
+    const step = Math.max(80, main.clientHeight - headHeight() - 60);
+    const atBottom = main.scrollTop + main.clientHeight >= main.scrollHeight - 2;
+    if (!up && atBottom) { move(1); return; }
+    main.scrollBy({ top: up ? -step : step });
+  }
+
+  // Expanded view: an item becomes current (and read) once its top scrolls
+  // under the toolbar, the way Google Reader did it.
+  let ticking = false;
+  main.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => { ticking = false; onScroll(); });
+  }, { passive: true });
+
+  function onScroll() {
+    if (!stream() || isList()) return;
+    const line = main.getBoundingClientRect().top + headHeight() + 16;
+    let passed = null;
+    for (const item of items()) {
+      if (item.getBoundingClientRect().top > line) break;
+      passed = item;
+      if (markOnScroll()) setRead(item, true);
+    }
+    if (passed && passed !== current) select(passed, { scroll: false, read: false });
+  }
+
+  async function markAllRead() {
+    const s = stream();
+    if (!s || !$('[data-action="mark-all-read"]', s)) return;
+    const scope = s.dataset.scope;
+    const n = +($('.js-unread-count')?.dataset.n || 0);
+    if (!n) { toast('Nothing to mark.'); return; }
+    if (scope === 'all' && !confirm(`Mark all ${n} items as read?`)) return;
+    try {
+      const res = await post('/api/mark-all-read/', { scope, max_id: s.dataset.maxId });
+      toast(`Marked ${res.marked} item${res.marked === 1 ? '' : 's'} as read.`);
+      reload();
+    } catch (e) {
+      toast("Couldn't mark items as read.");
+    }
+  }
+
+  // --- sidebar --------------------------------------------------------------
+
+  function collapsedFolders() { return new Set(store.get('collapsed', [])); }
+
+  function applyNavState() {
+    const collapsed = collapsedFolders();
+    for (const li of $$('#nav-tree li.folder')) {
+      const isCollapsed = collapsed.has(li.dataset.folder);
+      li.classList.toggle('collapsed', isCollapsed);
+      $('.twisty', li)?.setAttribute('aria-expanded', String(!isCollapsed));
+    }
+    $('#nav-tree')?.classList.toggle('hide-read', !!store.get('hideRead', false));
+    markSelected();
+    updateTitle();
+  }
+
+  function toggleFolder(li) {
+    if (!li) return;
+    const collapsed = collapsedFolders();
+    const id = li.dataset.folder;
+    collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id);
+    store.set('collapsed', [...collapsed]);
+    applyNavState();
+  }
+
+  function markSelected() {
+    const scope = stream()?.dataset.scope;
+    for (const el of $$('#sidebar .selected')) el.classList.remove('selected');
+    for (const el of $$('#sidebar .is-selected')) el.classList.remove('is-selected');
+    if (!scope) return;
+    const link = $(`#sidebar .nav-item[data-scope="${scope}"]`);
+    if (!link) return;
+    link.classList.add('selected');
+    link.closest('li')?.classList.add('is-selected');
+    link.closest('li.folder')?.classList.add('is-selected');
+  }
+
+  function visibleNavItems() {
+    return $$('#sidebar .nav-item[data-scope]').filter((el) => el.offsetParent !== null);
+  }
+
+  function navMove(direction) {
+    const list = visibleNavItems();
+    if (!list.length) return;
+    const start = navCursor && list.includes(navCursor) ? navCursor : $('#sidebar .nav-item.selected');
+    let index = list.indexOf(start);
+    index = index === -1 ? 0 : Math.min(list.length - 1, Math.max(0, index + direction));
+    navCursor?.classList.remove('nav-cursor');
+    navCursor = list[index];
+    navCursor.classList.add('nav-cursor');
+    navCursor.scrollIntoView({ block: 'nearest' });
+  }
+
+  function navOpen() {
+    if (navCursor && document.contains(navCursor)) navCursor.click();
+  }
+
+  function toggleNav(force) {
+    const open = typeof force === 'boolean' ? force : !document.body.classList.contains('nav-open');
+    document.body.classList.toggle('nav-open', open);
+  }
+
+  function openSubscribe() {
+    const form = $('.subscribe-form');
+    const button = $('[data-action="subscribe"]');
+    if (!form) return;
+    const show = form.hidden;
+    form.hidden = !show;
+    button?.setAttribute('aria-expanded', String(show));
+    if (show) {
+      if (window.matchMedia('(max-width: 899px)').matches) toggleNav(true);
+      $('#subscribe-url')?.focus();
+    }
+  }
+
+  // --- help -----------------------------------------------------------------
+
+  function toggleHelp() {
+    const dialog = $('#help');
+    if (dialog.open) dialog.close(); else dialog.showModal();
+  }
+  $('#help').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+
+  // --- clicks ---------------------------------------------------------------
+
+  document.addEventListener('click', (e) => {
+    const control = e.target.closest('[data-action]');
+    const item = e.target.closest('#items .item');
+    const action = control?.dataset.action;
+
+    switch (action) {
+      case 'star': e.preventDefault(); e.stopPropagation(); toggleStar(item); return;
+      case 'read': toggleRead(item); return;
+      case 'toggle': toggleOpen(item); return;
+      case 'open-original': setRead(item, true); return;  // let the link open
+      case 'view': setPrefs({ view_mode: control.dataset.value }); return;
+      case 'unread-only': setPrefs({ unread_only: control.dataset.value }); return;
+      case 'sort': control.closest('details')?.removeAttribute('open'); setPrefs({ oldest_first: control.dataset.value }); return;
+      case 'scroll-mode': control.closest('details')?.removeAttribute('open'); setPrefs({ mark_read_on_scroll: control.dataset.value }); return;
+      case 'mark-all-read': markAllRead(); return;
+      case 'reload': reload(); return;
+      case 'toggle-folder': toggleFolder(control.closest('li.folder')); return;
+      case 'toggle-read-feeds': store.set('hideRead', !store.get('hideRead', false)); applyNavState(); return;
+      case 'toggle-nav': toggleNav(); return;
+      case 'subscribe': openSubscribe(); return;
+      case 'help': toggleHelp(); return;
+    }
+    // Clicking anywhere in an expanded entry makes it the current one.
+    if (item && item !== current && !isList()) select(item, { scroll: false });
+
+    // Close open menus when clicking elsewhere.
+    for (const menu of $$('details.menu[open]')) if (!menu.contains(e.target)) menu.removeAttribute('open');
+  });
+
+  // --- keyboard -------------------------------------------------------------
+
+  document.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+    const target = e.target;
+    if (target.closest('input, textarea, select, [contenteditable="true"]')) {
+      if (e.key === 'Escape') target.blur();
+      return;
+    }
+    if ($('#help').open && e.key !== '?') return;
+    // Letters: Shift decides the case, not Caps Lock or how the event was synthesized.
+    const key = /^[a-z]$/i.test(e.key) ? (e.shiftKey ? e.key.toUpperCase() : e.key.toLowerCase()) : e.key;
+    if ((key === 'Enter' || key === ' ') && target.closest('button, a, summary, audio, video')) return;
+
+    if (gPrefix) {
+      gPrefix = false;
+      clearTimeout(gTimer);
+      if (key === 'a' || key === 'h') go('/all/');
+      else if (key === 's') go('/starred/');
+      else if (key === 'm') window.location.href = '/manage/';
+      else return;
+      e.preventDefault();
+      return;
+    }
+
+    switch (key) {
+      case 'j': move(1); break;
+      case 'k': move(-1); break;
+      case 'n': move(1, { read: false }); break;
+      case 'p': move(-1, { read: false }); break;
+      case 'o': case 'Enter': toggleOpen(current); break;
+      case 's': toggleStar(current); break;
+      case 'm': toggleRead(current); break;
+      case 'v': openOriginal(current); break;
+      case 'A': markAllRead(); break;
+      case 'r': reload(); break;
+      case 'u': document.body.classList.toggle('fullscreen'); break;
+      case '1': if (isList()) setPrefs({ view_mode: 'expanded' }); break;
+      case '2': if (!isList()) setPrefs({ view_mode: 'list' }); break;
+      case 'N': navMove(1); break;
+      case 'P': navMove(-1); break;
+      case 'O': navOpen(); break;
+      case 'X': toggleFolder(navCursor?.closest('li.folder')); break;
+      case 'g': gPrefix = true; gTimer = setTimeout(() => { gPrefix = false; }, 1500); break;
+      case '/': $('#search-input')?.focus(); $('#search-input')?.select(); break;
+      case 'a': openSubscribe(); break;
+      case '?': toggleHelp(); break;
+      case ' ': pageDown(e.shiftKey); break;
+      case 'Escape': toggleNav(false); for (const m of $$('details.menu[open]')) m.removeAttribute('open'); break;
+      default: return;
+    }
+    e.preventDefault();
+  });
+
+  // --- htmx lifecycle ---------------------------------------------------------
+
+  document.body.addEventListener('htmx:beforeSwap', (e) => {
+    const url = e.detail.xhr?.responseURL || '';
+    if (url.includes('/login/')) { window.location.href = url; e.detail.shouldSwap = false; }
+  });
+
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    const target = e.detail.target;
+    if (target === main) {
+      current = null;
+      main.scrollTop = 0;
+      toggleNav(false);
+      markSelected();
+      updateTitle();
+      main.focus({ preventScroll: true });
+    } else if (target.id === 'nav-tree') {
+      navCursor = null;
+      applyNavState();
+    }
+  });
+
+  document.body.addEventListener('htmx:responseError', () => toast('The server had a problem with that.'));
+  document.body.addEventListener('htmx:sendError', () => toast("Can't reach the server — are you offline?"));
+
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshNav(); });
+
+  // Flash messages from full page loads fade out on their own.
+  setTimeout(() => $('.flash')?.classList.add('gone'), 5000);
+
+  applyNavState();
+})();

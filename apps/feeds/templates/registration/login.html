@@ -1,0 +1,17 @@
+{% extends "feeds/base.html" %}
+{% block title %}Sign in – Reader{% endblock %}
+{% block body %}
+<main class="login">
+  <div class="login-card">
+    <div class="brand"><svg class="brand-mark"><use href="#i-rss"/></svg><span>Reader</span></div>
+    <form method="post" action="{% url 'login' %}">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<p class="error">That username and password didn't match.</p>{% endif %}
+      <label>Username <input type="text" name="username" autocomplete="username" autocapitalize="none" required autofocus value="{{ form.username.value|default:'' }}"></label>
+      <label>Password <input type="password" name="password" autocomplete="current-password" required></label>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+    </form>
+  </div>
+</main>
+{% endblock %}

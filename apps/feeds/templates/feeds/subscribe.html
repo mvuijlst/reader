@@ -1,0 +1,39 @@
+{% extends "feeds/base.html" %}
+{% block title %}Subscribe – Reader{% endblock %}
+{% block body %}
+{% include "feeds/partials/topbar.html" %}
+<main class="page narrow">
+  <a class="back" href="{% url 'feeds:all' %}">← Back to Reader</a>
+  {% if candidates %}
+    <h1>Pick a feed</h1>
+    <p class="muted" style="margin:8px 0 20px">{{ source_url }} offers more than one feed.</p>
+    <div class="candidates">
+      {% for c in candidates %}
+      <form class="candidate" method="post" action="{% url 'feeds:subscribe' %}">
+        {% csrf_token %}
+        <input type="hidden" name="url" value="{{ c.url }}">
+        <input type="hidden" name="title" value="{{ c.title }}">
+        <input type="hidden" name="folder" value="{{ folder_id }}">
+        <input type="hidden" name="chosen" value="1">
+        <div><strong>{{ c.title|default:"Untitled feed" }}</strong><span>{{ c.url }}</span></div>
+        <button class="btn btn-primary btn-sm" type="submit">Subscribe</button>
+      </form>
+      {% endfor %}
+    </div>
+  {% else %}
+    <h1>Subscribe</h1>
+    <section class="panel" style="margin-top:20px">
+      <p>A feed address, or any page that links to one.</p>
+      <form class="row-form" method="post" action="{% url 'feeds:subscribe' %}">
+        {% csrf_token %}
+        <input type="text" name="url" placeholder="https://example.com" required autofocus inputmode="url" aria-label="Feed or website address">
+        <select name="folder" aria-label="Folder">
+          <option value="">No folder</option>
+          {% for f in folders %}<option value="{{ f.pk }}">{{ f.name }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-primary" type="submit">Subscribe</button>
+      </form>
+    </section>
+  {% endif %}
+</main>
+{% endblock %}

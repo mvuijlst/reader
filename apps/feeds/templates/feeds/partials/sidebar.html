@@ -1,0 +1,43 @@
+{% load reader_tags %}
+<div class="nav-group">
+  <a class="nav-item{% if total_unread %} has-unread{% endif %}" href="{% url 'feeds:all' %}" data-scope="all">
+    <svg class="ico"><use href="#i-inbox"/></svg>
+    <span class="label">All items</span>
+    <span class="count" data-count="all" data-n="{{ total_unread }}">{{ total_unread|unreadcount }}</span>
+  </a>
+  <a class="nav-item" href="{% url 'feeds:starred' %}" data-scope="starred">
+    <svg class="ico"><use href="#i-star"/></svg>
+    <span class="label">Starred items</span>
+    <span class="count count-quiet" data-starred-count data-n="{{ starred_count }}">{{ starred_count|default:"" }}</span>
+  </a>
+</div>
+
+<div class="nav-heading">
+  <span>Subscriptions</span>
+  <button class="link-btn" type="button" data-action="toggle-read-feeds" title="Show only feeds with new items">
+    <span class="when-all">Hide read</span><span class="when-filtered">Show all</span>
+  </button>
+</div>
+
+{% if not has_feeds %}
+<p class="nav-empty">No subscriptions yet. Use <strong>Subscribe</strong> above, or import an OPML file on the <a href="{% url 'feeds:manage' %}" hx-boost="false">manage page</a>.</p>
+{% endif %}
+
+<ul class="tree">
+  {% for folder in folders %}
+  <li class="folder{% if folder.unread %} has-unread{% endif %}" data-folder="{{ folder.pk }}">
+    <button class="twisty" type="button" data-action="toggle-folder" aria-label="Expand or collapse {{ folder.name }}" aria-expanded="true">
+      <svg class="ico"><use href="#i-chevron"/></svg>
+    </button>
+    <a class="nav-item" href="{{ folder.get_absolute_url }}" data-scope="folder:{{ folder.pk }}">
+      <svg class="ico"><use href="#i-folder"/></svg>
+      <span class="label">{{ folder.name }}</span>
+      <span class="count" data-count="folder:{{ folder.pk }}" data-n="{{ folder.unread }}">{{ folder.unread|unreadcount }}</span>
+    </a>
+    <ul class="feeds">
+      {% for feed in folder.feed_list %}{% include "feeds/partials/nav_feed.html" %}{% endfor %}
+    </ul>
+  </li>
+  {% endfor %}
+  {% for feed in loose_feeds %}{% include "feeds/partials/nav_feed.html" %}{% endfor %}
+</ul>

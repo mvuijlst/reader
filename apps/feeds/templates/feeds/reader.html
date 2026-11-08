@@ -1,0 +1,38 @@
+{% extends "feeds/base.html" %}
+{% load static reader_tags %}
+{% block title %}{% if total_unread %}({{ total_unread|unreadcount }}) {% endif %}{{ title }} – Reader{% endblock %}
+{% block body_class %}reader-app{% endblock %}
+{% block body %}
+{% include "feeds/partials/topbar.html" with reader_page=True %}
+<div class="layout">
+  <aside class="sidebar" id="sidebar" hx-boost="true" hx-target="#main" hx-swap="innerHTML show:none">
+    <div class="subscribe">
+      <button class="btn btn-primary btn-block" type="button" data-action="subscribe" aria-expanded="false">
+        <svg class="ico"><use href="#i-plus"/></svg> Subscribe
+      </button>
+      <form class="subscribe-form" method="post" action="{% url 'feeds:subscribe' %}" hx-boost="false" hidden>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <input type="text" name="url" id="subscribe-url" placeholder="Feed or website address" required autocomplete="off" inputmode="url">
+        <button class="btn btn-outline" type="submit">Add</button>
+        <p class="hint">A feed URL, or any page that links to one: a blog, a YouTube channel, a podcast.</p>
+      </form>
+    </div>
+    <div id="nav-tree">{% include "feeds/partials/sidebar.html" %}</div>
+  </aside>
+  <div class="scrim" data-action="toggle-nav" aria-hidden="true"></div>
+  <main id="main" class="main" tabindex="-1">{% include "feeds/partials/stream.html" %}</main>
+</div>
+
+{# Polls the sidebar so unread counts follow the fetcher. #}
+<div hidden hx-get="{% url 'feeds:sidebar' %}" hx-trigger="every 120s, refresh-nav from:body" hx-target="#nav-tree" hx-swap="innerHTML"></div>
+
+{% if messages %}
+<div class="flash" role="status">
+  {% for message in messages %}<p class="flash-msg flash-{{ message.tags }}">{{ message }}</p>{% endfor %}
+</div>
+{% endif %}
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% include "feeds/partials/help.html" %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/reader.js' %}"></script>{% endblock %}

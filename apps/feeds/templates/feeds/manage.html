@@ -1,0 +1,118 @@
+{% extends "feeds/base.html" %}
+{% load reader_tags %}
+{% block title %}Manage subscriptions – Reader{% endblock %}
+{% block body %}
+{% include "feeds/partials/topbar.html" %}
+<main class="page">
+  <div class="page-head">
+    <div>
+      <a class="back" href="{% url 'feeds:all' %}">← Back to Reader</a>
+      <h1>Subscriptions</h1>
+    </div>
+    <form method="post" action="{% url 'feeds:fetch-all' %}">
+      {% csrf_token %}
+      <button class="btn btn-outline" type="submit"><svg class="ico"><use href="#i-refresh"/></svg> Fetch all now</button>
+    </form>
+  </div>
+
+  {% if messages %}
+  <div class="messages" role="status">
+    {% for message in messages %}<p class="flash-{{ message.tags }}">{{ message }}</p>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="panels">
+    <section class="panel">
+      <h2>Add a subscription</h2>
+      <p>A feed address, or any page that links to one: a blog, a YouTube channel or playlist, a podcast page.</p>
+      <form class="row-form" method="post" action="{% url 'feeds:subscribe' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'feeds:manage' %}">
+        <input type="text" name="url" placeholder="https://example.com" required inputmode="url" aria-label="Feed or website address">
+        <select name="folder" aria-label="Folder">
+          <option value="">No folder</option>
+          {% for f in all_folders %}<option value="{{ f.pk }}">{{ f.name }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-primary" type="submit">Subscribe</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Import &amp; export</h2>
+      <p>OPML moves your subscriptions between readers — Feedly, Inoreader, NetNewsWire, or an old Google Takeout (<code>subscriptions.xml</code>).</p>
+      <form class="row-form" method="post" action="{% url 'feeds:opml-import' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="opml" accept=".opml,.xml,text/xml,application/xml,text/x-opml" required aria-label="OPML file">
+        <button class="btn" type="submit">Import</button>
+        <a class="btn btn-outline" href="{% url 'feeds:opml-export' %}">Export OPML</a>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Folders</h2>
+      <div class="folder-list">
+        {% for f in all_folders %}
+        <form method="post" action="{% url 'feeds:folder-update' f.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'feeds:manage' %}">
+          <input type="text" name="name" value="{{ f.name }}" maxlength="200" required aria-label="Folder name">
+          <span class="n">{{ f.n }} feed{{ f.n|pluralize }}</span>
+          <button class="btn btn-sm" type="submit">Rename</button>
+          <button class="btn btn-sm btn-danger" type="submit" form="delete-folder-{{ f.pk }}">Delete</button>
+        </form>
+        <form id="delete-folder-{{ f.pk }}" method="post" action="{% url 'feeds:folder-delete' f.pk %}" data-confirm="Delete the folder {{ f.name }}? Its feeds stay subscribed, outside any folder." hidden>
+          {% csrf_token %}<input type="hidden" name="next" value="{% url 'feeds:manage' %}">
+        </form>
+        {% empty %}
+        <p>No folders yet.</p>
+        {% endfor %}
+        <form method="post" action="{% url 'feeds:folder-create' %}">
+          {% csrf_token %}
+          <input type="text" name="name" placeholder="New folder name" maxlength="200" required aria-label="New folder name">
+          <button class="btn btn-sm" type="submit">Create folder</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Reading</h2>
+      <form method="post" action="{% url 'feeds:prefs' %}" class="folder-list">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'feeds:manage' %}">
+        <input type="hidden" name="mark_read_on_scroll" value="0">
+        <label class="check"><input type="checkbox" name="mark_read_on_scroll" value="1"{% if prefs.mark_read_on_scroll %} checked{% endif %}> In expanded view, mark items as read as you scroll past them</label>
+        <div><button class="btn btn-sm" type="submit">Save</button></div>
+      </form>
+      <p class="muted" style="margin-top:12px">Press <kbd>?</kbd> in the reader for keyboard shortcuts.</p>
+    </section>
+  </div>
+
+  <div class="table-head">
+    <h2>{{ feeds|length }} feed{{ feeds|pluralize }}{% if failing %} · <span class="status-bad" style="color:var(--danger)">{{ failing }} not updating</span>{% endif %}</h2>
+    <nav class="sorts" aria-label="Sort feeds">
+      Sort:
+      {% for key, label in sort_options %}<a href="?sort={{ key }}"{% if sort == key %} aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}
+    </nav>
+  </div>
+  {% if feeds %}
+  <div class="table-wrap">
+    <table class="subs">
+      <thead>
+        <tr>
+          <th>Feed</th>
+          <th>Folder</th>
+          <th class="num" title="Items per week, last 30 days">Per week</th>
+          <th class="num">Latest</th>
+          <th class="num">Unread</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for feed in feeds %}{% include "feeds/partials/manage_row.html" %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}
