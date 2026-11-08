@@ -1,0 +1,98 @@
+name: Test and deploy
+
+# Every push to main: run the tests, then deploy that exact commit to the VPS.
+# The deploy step SSHes in with a key that the server pins to deploy/update.sh,
+# so the only thing it can do is deploy. Setup: deploy/RUNBOOK.md, section 4.
+# Until the DEPLOY_* secrets exist (and in forks), the deploy is skipped, not failed.
+#
+# To redeploy, use Actions → "Test and deploy" → Run workflow. Don't "Re-run" an old
+# run: that replays the old commit's workflow file.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - ".gitignore"
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+        env:
+          DJANGO_DEBUG: "true"
+
+      - name: Run tests
+        run: python manage.py test apps.feeds
+        env:
+          DJANGO_DEBUG: "true"
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Deploys run one after another and are never cancelled halfway (migrations).
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Preflight — are the deploy secrets configured?
+        id: preflight
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          present=0
+          missing=""
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            if [ -n "${!name}" ]; then present=$((present + 1)); else missing="$missing $name"; fi
+          done
+          if [ "$present" -eq 0 ]; then
+            echo "::notice::No deploy secrets configured, so not deploying. See deploy/RUNBOOK.md, section 4."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$missing" ]; then
+            echo "::error::Missing deploy secrets:$missing"
+            exit 1
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy over SSH
+        if: steps.preflight.outputs.ready == 'true'
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The server ignores the command and runs deploy/update.sh, which reads
+          # the commit to deploy from $SSH_ORIGINAL_COMMAND.
+          ssh -i ~/.ssh/deploy_key -p "${DEPLOY_PORT:-22}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+            "$DEPLOY_USER@$DEPLOY_HOST" "$GITHUB_SHA"

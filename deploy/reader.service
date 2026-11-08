@@ -7,6 +7,8 @@ After=network.target
 User=django
 Group=django
 WorkingDirectory=/home/django/reader-yusupov/app
+# /run/reader holds the pidfile; deploy/update.sh sends it HUP for a graceful reload.
+RuntimeDirectory=reader
 # gthread workers: background OPML fetches run in a thread of the web worker.
 # Generous timeout: subscribing discovers and fetches the feed inside the request.
 ExecStart=/home/django/reader-yusupov/app/venv/bin/gunicorn \
@@ -14,7 +16,9 @@ ExecStart=/home/django/reader-yusupov/app/venv/bin/gunicorn \
     --threads 4 \
     --timeout 90 \
     --bind 127.0.0.1:8027 \
+    --pid /run/reader/gunicorn.pid \
     reader.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
 Restart=on-failure
 
 [Install]
