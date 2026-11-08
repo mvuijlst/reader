@@ -255,8 +255,12 @@ def download(job):
         if job.last_modified:
             headers["If-Modified-Since"] = job.last_modified
         r = http.get(job.url, headers=headers, max_bytes=MAX_FEED_BYTES)
+        blocked_by = http.bot_protection(r)
         if r.status == 304:
             res.not_modified = True
+        elif blocked_by:
+            res.error = http.blocked_message(blocked_by)
+            res.retry_after = _retry_after(r.headers)
         elif not r.ok:
             res.error = f"HTTP {r.status}"
             res.retry_after = _retry_after(r.headers)

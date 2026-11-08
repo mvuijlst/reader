@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.feeds.models import Feed, Item
-from apps.feeds.services import discovery, fetcher, opml
+from apps.feeds.services import discovery, fetcher, http, opml
 from apps.feeds.services.sanitize import clean_html, first_image
 
 from .helpers import HTML_FORMAT_VARIANTS, HTML_WITH_FEEDS, PNG, RSS, fake_web, response
@@ -144,6 +144,42 @@ class ThumbnailTests(TestCase):
         self.assertEqual(Item.objects.get(guid="https://example.com/1").thumbnail, "https://example.com/a.png")
         self.assertEqual(Item.objects.get(guid="ep-2").thumbnail, "https://example.com/art/ep2.jpg")  # itunes:image
         self.assertEqual(Item.objects.get(title="Ancient").thumbnail, "")
+
+
+class BotProtectionTests(TestCase):
+    BUNNY = b"<!DOCTYPE html><html><head><title>Establishing a secure connection ...</title></head></html>"
+    CLOUDFLARE = b"<html><head><title>Just a moment...</title></head><body><script src='/cdn-cgi/challenge-platform/h/b/orchestrate'></script></body></html>"
+
+    def test_recognises_challenges(self):
+        html = {"Content-Type": "text/html"}
+        self.assertEqual(http.bot_protection(response(self.BUNNY, status=403, headers={"Server": "BunnyCDN-BE1-1161", **html})), "BunnyCDN")
+        self.assertEqual(http.bot_protection(response(self.CLOUDFLARE, status=403, headers={"Server": "cloudflare", **html})), "Cloudflare")
+        self.assertEqual(http.bot_protection(response(b"<html></html>", status=200, headers={"cf-mitigated": "challenge", **html})), "Cloudflare")
+        self.assertEqual(http.bot_protection(response(b"<p>Please complete the CAPTCHA</p>", status=403, headers=html)), "unknown")
+
+    def test_leaves_normal_pages_and_errors_alone(self):
+        html = {"Content-Type": "text/html"}
+        # Cloudflare injects its challenge script into normal pages too.
+        normal = b"<html><body>Hello<script src='/cdn-cgi/challenge-platform/scripts/jsd/main.js'></script></body></html>"
+        self.assertIsNone(http.bot_protection(response(normal, status=200, headers={"Server": "cloudflare", **html})))
+        self.assertIsNone(http.bot_protection(response(b"<h1>Forbidden</h1>", status=403, headers=html)))
+        self.assertIsNone(http.bot_protection(response(b"Not found", status=404)))
+        self.assertIsNone(http.bot_protection(response(b"<html></html>", status=200, headers={"x-iinfo": "1-2-3", **html})))
+        self.assertIsNone(http.bot_protection(response(RSS, status=200, headers={"Content-Type": "application/rss+xml"})))
+
+    def test_subscribe_and_fetch_say_why(self):
+        blocked = response(self.BUNNY, status=403, url=FEED_URL, headers={"Content-Type": "text/html", "Server": "BunnyCDN"})
+        with fake_web({FEED_URL: blocked}):
+            with self.assertRaises(discovery.DiscoveryError) as caught:
+                discovery.discover(FEED_URL)
+        self.assertIn("bot protection (BunnyCDN) blocks feed readers", str(caught.exception))
+
+        feed = Feed.objects.create(url=FEED_URL)
+        with fake_web({FEED_URL: blocked}):
+            fetcher.fetch_feeds([feed])
+        feed.refresh_from_db()
+        self.assertEqual(feed.last_error, http.blocked_message("BunnyCDN"))
+        self.assertEqual(feed.error_count, 1)
 
 
 class SanitizeTests(TestCase):

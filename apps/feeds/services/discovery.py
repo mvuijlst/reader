@@ -147,6 +147,9 @@ def discover(url):
         result = http.get(url, headers=_request_headers(url), max_bytes=5 * 1024 * 1024)
     except http.FetchError as e:
         raise DiscoveryError(str(e)) from e
+    blocked_by = http.bot_protection(result)
+    if blocked_by:
+        raise DiscoveryError(http.blocked_message(blocked_by))
     if not result.ok:
         raise DiscoveryError(f"The site answered HTTP {result.status}.")
 
