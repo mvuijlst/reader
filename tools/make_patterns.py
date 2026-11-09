@@ -14,19 +14,30 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / "static" / "img" / "patterns"
 
+# The patterns are drawn in the units below and written out SCALE times as
+# large, which is the size they show at (the stylesheet uses their natural
+# size). Strokes are given in screen pixels: thin, so the large pattern stays
+# quiet behind text.
+SCALE = 2
 
-def svg(width, height, body, stroke=2.0, defs=""):
+
+def svg(width, height, body, stroke=1.0, defs=""):
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
-        f'viewBox="0 0 {width} {height}">'
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{f(width * SCALE)}" height="{f(height * SCALE)}" '
+        f'viewBox="0 0 {f(width)} {f(height)}">'
         f"{f'<defs>{defs}</defs>' if defs else ''}"
-        f'<g fill="none" stroke="#000" stroke-width="{stroke}" stroke-linecap="round" stroke-linejoin="round">'
+        f'<g fill="none" stroke="#000" stroke-width="{px(stroke)}" stroke-linecap="round" stroke-linejoin="round">'
         f"{body}</g></svg>\n"
     )
 
 
 def f(n):
     return f"{n:.2f}".rstrip("0").rstrip(".")
+
+
+def px(n):
+    """A stroke width that shows as n screen pixels."""
+    return f(n / SCALE)
 
 
 def scales(R=30, rings=5):
@@ -51,7 +62,7 @@ def scales(R=30, rings=5):
         for x in range(-R, 4 * R, 2 * R):
             cx = x + (R if k % 2 else 0)
             body += f'<g transform="translate({f(cx)},{f(y)})" clip-path="url(#fan)">{fan}</g>'
-    return svg(2 * R, R, body, stroke=2.2, defs=clip)
+    return svg(2 * R, R, body, stroke=1.3, defs=clip)
 
 
 def fans(S=30, rays=8):
@@ -70,7 +81,7 @@ def fans(S=30, rays=8):
                 t = (i - half) / half
                 px, py = bottom[0] + (right[0] - bottom[0]) * t, bottom[1] + (right[1] - bottom[1]) * t
             body += f'<path d="M{f(top[0])},{f(top[1])} L{f(px)},{f(py)}"/>'
-    return svg(2 * S, 2 * S, body, stroke=1.6)
+    return svg(2 * S, 2 * S, body, stroke=1.0)
 
 
 def _stacked(width, height, columns, top_path, hit):
@@ -101,7 +112,7 @@ def arches(W=44, H=96, offsets=(6, 12, 18)):
         return sqrt(max(R * R - r * r, 0))
 
     cols = [(W / 2, 0, offsets), (W * 1.5, H / 2, offsets)]
-    return svg(2 * W, H, _stacked(2 * W, H, cols, top, hit), stroke=1.8)
+    return svg(2 * W, H, _stacked(2 * W, H, cols, top, hit), stroke=1.2)
 
 
 def gables(W=44, H=96, offsets=(5, 11, 17), slope=0.75):
@@ -116,7 +127,7 @@ def gables(W=44, H=96, offsets=(5, 11, 17), slope=0.75):
     body = _stacked(2 * W, H, cols, top, hit)
     for x in (0, W, 2 * W):  # the long lines between the columns
         body += f'<path d="M{f(x)},0 L{f(x)},{f(H)}"/>'
-    return svg(2 * W, H, body, stroke=1.8)
+    return svg(2 * W, H, body, stroke=1.2)
 
 
 def ogee(W=60, H=84):
@@ -134,7 +145,7 @@ def ogee(W=60, H=84):
             mid = dx + W / 2
             lean = inset if side < mid else -inset
             thin += f'<path d="M{f(side)},0 C{f(side)},{f(q * 1.1)} {f(mid + lean * 0.2)},{f(q * 0.9 + inset)} {f(mid + lean * 0.2)},{f(2 * q)}"/>'
-    return svg(W, H, body + f'<g stroke-width="0.9">{thin}</g>', stroke=2.2)
+    return svg(W, H, body + f'<g stroke-width="{px(0.6)}">{thin}</g>', stroke=1.3)
 
 
 PATTERNS = {"scales": scales, "fans": fans, "arches": arches, "gables": gables, "ogee": ogee}

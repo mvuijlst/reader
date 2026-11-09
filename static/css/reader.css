@@ -314,7 +314,7 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 .site-toggle input { width: 14px; height: 14px; }
 
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
-.toolbar [data-action="reload"] { margin-left: auto; }
+.toolbar-end { display: flex; align-items: center; gap: inherit; margin-left: auto; }
 .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; }
 .seg button {
   display: inline-flex; align-items: center;
@@ -518,7 +518,9 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 /* Posts without a picture show their opening lines on a soft tint with an
    art-deco pattern. Pattern and tint are picked per post (the |deco template
    filter: random-looking, but stable). The tiles (tools/make_patterns.py) are
-   masks, so the line colour comes from here and follows the theme. */
+   masks, so the line colour comes from here and follows the theme; they show
+   at their natural size. Kept large and low-contrast so the italic quote on
+   top stays easy to read. */
 .tint-0 { --tint-h: 224; }  /* navy */
 .tint-1 { --tint-h: 178; }  /* teal */
 .tint-2 { --tint-h: 152; }  /* emerald */
@@ -527,25 +529,24 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 .tint-5 { --tint-h: 16; }   /* terracotta */
 .tint-6 { --tint-h: 332; }  /* rose */
 .tint-7 { --tint-h: 266; }  /* violet */
-.pat-scales { --pat: url("/static/img/patterns/scales.svg"); --pat-size: 60px 30px; }
-.pat-fans { --pat: url("/static/img/patterns/fans.svg"); --pat-size: 60px 60px; }
-.pat-arches { --pat: url("/static/img/patterns/arches.svg"); --pat-size: 88px 96px; }
-.pat-gables { --pat: url("/static/img/patterns/gables.svg"); --pat-size: 88px 96px; }
-.pat-ogee { --pat: url("/static/img/patterns/ogee.svg"); --pat-size: 60px 84px; }
+.pat-scales { --pat: url("/static/img/patterns/scales.svg"); }
+.pat-fans { --pat: url("/static/img/patterns/fans.svg"); }
+.pat-arches { --pat: url("/static/img/patterns/arches.svg"); }
+.pat-gables { --pat: url("/static/img/patterns/gables.svg"); }
+.pat-ogee { --pat: url("/static/img/patterns/ogee.svg"); }
 .mag-noimg .mag-media {
   --deco-bg: hsl(var(--tint-h, 200) 28% 15%);
-  --deco-line: hsl(var(--tint-h, 200) 30% 23%);
+  --deco-line: hsl(var(--tint-h, 200) 28% 20%);
   background: var(--deco-bg);
 }
 [data-theme="light"] .mag-noimg .mag-media {
   --deco-bg: hsl(var(--tint-h, 200) 36% 92%);
-  --deco-line: hsl(var(--tint-h, 200) 30% 85%);
+  --deco-line: hsl(var(--tint-h, 200) 32% 87.5%);
 }
 .mag-noimg .mag-media::before {
   content: ""; position: absolute; inset: 0;
   background: var(--deco-line);
   -webkit-mask-image: var(--pat); mask-image: var(--pat);
-  -webkit-mask-size: var(--pat-size); mask-size: var(--pat-size);
   -webkit-mask-repeat: repeat; mask-repeat: repeat;
 }
 .mag-quote {

@@ -42,6 +42,8 @@ class DecoTests(SimpleTestCase):
             tile = STATIC / "img" / "patterns" / f"{name}.svg"
             root = ET.parse(tile).getroot()  # valid XML
             self.assertTrue(root.tag.endswith("svg"))
+            # The stylesheet shows tiles at their natural size, so they need one.
+            self.assertTrue(float(root.get("width")) > 0 and float(root.get("height")) > 0)
             self.assertIn(f".pat-{name} {{", css)
             self.assertIn(f"/static/img/patterns/{name}.svg", css)
         for n in range(DECO_TINTS):

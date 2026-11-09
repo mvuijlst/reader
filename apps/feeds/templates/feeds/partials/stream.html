@@ -45,6 +45,11 @@
         <button type="button" data-action="unread-only" data-value="1" aria-pressed="{{ unread_only|yesno:'true,false' }}"><span class="js-unread-count" data-n="{{ unread_count }}">{{ unread_count }}</span>&nbsp;new</button>
         <button type="button" data-action="unread-only" data-value="0" aria-pressed="{{ unread_only|yesno:'false,true' }}">All<span class="hide-sm">&nbsp;items</span></button>
       </div>
+      {% endif %}
+
+      {# Right-hand group, kept well away from new/all so a slip doesn't mark everything read. #}
+      <div class="toolbar-end">
+      {% if unread_count is not None %}
       <button class="btn btn-outline btn-sm" type="button" data-action="mark-all-read" title="Mark all as read (shift+a)">
         <svg class="ico"><use href="#i-check"/></svg><span class="hide-sm">Mark all as read</span>
       </button>
@@ -112,6 +117,7 @@
           {% endif %}
         </div>
       </details>
+      </div>
     </div>
   </header>
 
