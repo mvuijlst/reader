@@ -137,6 +137,9 @@ class ReaderViewTests(TestCase):
         self.assertNotContains(more, "mag-featured")
         self.assertIsNone(more.context["next_url"])
 
+        # Every card carries its backdrop pattern and tint (used when it has no picture).
+        self.assertRegex(response.content.decode(), r'class="item mag pat-[a-z]+ tint-\d')
+
         # Single feed view: no feed names on the cards.
         response = self.client.get(reverse("feeds:feed", args=[self.feed.pk]))
         self.assertNotContains(response, "mag-pill")

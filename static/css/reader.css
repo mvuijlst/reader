@@ -22,7 +22,6 @@
   --font: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --serif: "Newsreader", Georgia, "Times New Roman", serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --tint: #2a1d15;
   color-scheme: dark;
 }
 
@@ -43,7 +42,6 @@
   --danger: #c23b3b;
   --ok: #2f8a4f;
   --shadow: 0 14px 36px rgba(40, 30, 20, 0.14);
-  --tint: #fbe3d3;
   color-scheme: light;
 }
 
@@ -517,13 +515,38 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 .mag-hit:hover .pic-img { transform: scale(1.025); }
 .mag:not(.unread) .mag-media img { opacity: 0.6; }
 
-/* Posts without a picture show their opening lines on a tinted, faintly
-   patterned backdrop. */
+/* Posts without a picture show their opening lines on a soft tint with an
+   art-deco pattern. Pattern and tint are picked per post (the |deco template
+   filter: random-looking, but stable). The tiles (tools/make_patterns.py) are
+   masks, so the line colour comes from here and follows the theme. */
+.tint-0 { --tint-h: 224; }  /* navy */
+.tint-1 { --tint-h: 178; }  /* teal */
+.tint-2 { --tint-h: 152; }  /* emerald */
+.tint-3 { --tint-h: 118; }  /* forest */
+.tint-4 { --tint-h: 42; }   /* ochre */
+.tint-5 { --tint-h: 16; }   /* terracotta */
+.tint-6 { --tint-h: 332; }  /* rose */
+.tint-7 { --tint-h: 266; }  /* violet */
+.pat-scales { --pat: url("/static/img/patterns/scales.svg"); --pat-size: 60px 30px; }
+.pat-fans { --pat: url("/static/img/patterns/fans.svg"); --pat-size: 60px 60px; }
+.pat-arches { --pat: url("/static/img/patterns/arches.svg"); --pat-size: 88px 96px; }
+.pat-gables { --pat: url("/static/img/patterns/gables.svg"); --pat-size: 88px 96px; }
+.pat-ogee { --pat: url("/static/img/patterns/ogee.svg"); --pat-size: 60px 84px; }
 .mag-noimg .mag-media {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' fill='none' stroke='%23e8875a' stroke-opacity='.3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 34a13 13 0 0 1 13 13M16 23a24 24 0 0 1 24 24'/%3E%3Ccircle cx='17' cy='46' r='1.6' fill='%23e8875a' fill-opacity='.3'/%3E%3Cpath d='m112 14 3.6 7.3 8 1.2-5.8 5.6 1.4 8-7.2-3.8-7.2 3.8 1.4-8-5.8-5.6 8-1.2z'/%3E%3Crect x='66' y='70' width='24' height='18' rx='3'/%3E%3Cpath d='M71 76h14M71 82h9'/%3E%3Cpath d='M18 112a9 9 0 0 1 18 0M18 112v6h4v-6zM36 112v6h-4v-6z'/%3E%3Cpath d='M108 108h15v7a7.5 7.5 0 0 1-15 0zM123 110h3a3 3 0 0 1 0 6h-3'/%3E%3C/svg%3E")
-    0 0 / 150px 150px,
-    var(--tint);
+  --deco-bg: hsl(var(--tint-h, 200) 28% 15%);
+  --deco-line: hsl(var(--tint-h, 200) 30% 23%);
+  background: var(--deco-bg);
+}
+[data-theme="light"] .mag-noimg .mag-media {
+  --deco-bg: hsl(var(--tint-h, 200) 36% 92%);
+  --deco-line: hsl(var(--tint-h, 200) 30% 85%);
+}
+.mag-noimg .mag-media::before {
+  content: ""; position: absolute; inset: 0;
+  background: var(--deco-line);
+  -webkit-mask-image: var(--pat); mask-image: var(--pat);
+  -webkit-mask-size: var(--pat-size); mask-size: var(--pat-size);
+  -webkit-mask-repeat: repeat; mask-repeat: repeat;
 }
 .mag-quote {
   position: absolute; inset: 0;

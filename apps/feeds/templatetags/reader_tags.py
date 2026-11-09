@@ -1,3 +1,4 @@
+import hashlib
 from datetime import timedelta
 from urllib.parse import urlsplit
 
@@ -28,6 +29,18 @@ def readerdatetime(value):
     local, now = timezone.localtime(value), timezone.localtime()
     fmt = "j M, H:i" if local.year == now.year else "j M Y, H:i"
     return dateformat.format(local, fmt)
+
+
+# Art-deco backdrops for posts without a picture (tiles: tools/make_patterns.py).
+DECO_PATTERNS = ("scales", "fans", "arches", "gables", "ogee")
+DECO_TINTS = 8
+
+
+@register.filter
+def deco(pk):
+    """'pat-fans tint-3': a pattern and tint that look random but stay the same for a post."""
+    h = int.from_bytes(hashlib.blake2b(str(pk).encode(), digest_size=4).digest(), "big")
+    return f"pat-{DECO_PATTERNS[h % len(DECO_PATTERNS)]} tint-{(h >> 8) % DECO_TINTS}"
 
 
 @register.filter
