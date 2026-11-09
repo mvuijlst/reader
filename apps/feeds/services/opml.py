@@ -12,22 +12,26 @@ class OPMLError(Exception):
     pass
 
 
-def parse_opml(data):
-    """Return [(url, title, folder_name)] from an OPML document.
-
-    Nested folders are flattened to their top-level folder, since a feed here
-    lives in at most one folder.
-    """
+def load_opml(data):
+    """Parse an OPML document (bytes) into its root element."""
     if b"<!ENTITY" in data[:4096].upper():
         raise OPMLError("OPML files with entity declarations are not supported.")
     try:
         root = ET.fromstring(data)
     except ET.ParseError as e:
         raise OPMLError(f"Not a valid OPML file ({e}).") from e
-    body = root.find("body")
-    if body is None:
+    if root.find("body") is None:
         raise OPMLError("Not an OPML file: no <body>.")
+    return root
 
+
+def parse_opml(data):
+    """Return [(url, title, folder_name)] from an OPML document.
+
+    Nested folders are flattened to their top-level folder, since a feed here
+    lives in at most one folder.
+    """
+    body = load_opml(data).find("body")
     found = []
 
     def walk(node, folder):

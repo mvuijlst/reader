@@ -24,6 +24,7 @@ urlpatterns = [
     path("folder/<int:pk>/delete/", views.folder_delete, name="folder-delete"),
     path("manage/", views.manage, name="manage"),
     path("manage/fetch-all/", views.fetch_all, name="fetch-all"),
+    path("manage/bulk/", views.feeds_bulk, name="feeds-bulk"),
     path("opml/export/", views.opml_export, name="opml-export"),
     path("opml/import/", views.opml_import, name="opml-import"),
     # JSON endpoints used by reader.js

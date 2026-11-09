@@ -1,5 +1,5 @@
 {% extends "feeds/base.html" %}
-{% load reader_tags %}
+{% load reader_tags static %}
 {% block title %}Manage subscriptions – Reader{% endblock %}
 {% block body %}
 {% include "feeds/partials/topbar.html" %}
@@ -99,6 +99,7 @@
     <table class="subs">
       <thead>
         <tr>
+          <th class="pick"><input type="checkbox" id="bulk-all" aria-label="Select all feeds" title="Select all"></th>
           <th>Feed</th>
           <th>Folder</th>
           <th class="num" title="Items per week, last 30 days">Per week</th>
@@ -113,6 +114,16 @@
       </tbody>
     </table>
   </div>
+
+  {# Shown by manage.js once feeds are selected (click, shift-click for a range). #}
+  <form id="bulk-form" class="bulk-bar" method="post" action="{% url 'feeds:feeds-bulk' %}" hidden>
+    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <span class="bulk-count" aria-live="polite"></span>
+    <button class="btn btn-sm" type="submit" name="action" value="fetch"><svg class="ico"><use href="#i-refresh"/></svg>Refresh</button>
+    <button class="btn btn-sm btn-danger" type="submit" name="action" value="unsubscribe">Unsubscribe</button>
+    <button class="icon-btn" type="button" data-bulk-clear title="Clear the selection (Esc)" aria-label="Clear the selection"><svg class="ico"><use href="#i-close"/></svg></button>
+  </form>
   {% endif %}
 </main>
 {% endblock %}
+{% block scripts %}<script src="{% static 'js/manage.js' %}"></script>{% endblock %}

@@ -106,6 +106,20 @@ venv/bin/python manage.py fetch_feeds --all      # everything, now
 venv/bin/python manage.py import_opml subscriptions.opml
 ```
 
+An old export (Google Reader, Feedly) is usually full of feeds that died years ago.
+`prune_opml` checks every feed and writes a cleaned copy plus a CSV report, leaving
+the original alone:
+
+```bash
+venv/bin/python manage.py prune_opml subscriptions.opml   # -> subscriptions.pruned.opml, subscriptions.report.csv
+```
+
+A feed is dropped only on clear evidence: its domain is gone, it answers 404/410,
+or its address no longer serves a feed. When the site still has a feed under the same
+name, that feed takes its place. Permanent redirects update the address. Timeouts,
+server errors and bot walls count as "unsure" and are kept. Pass `--drop-unsure` to
+drop them, or `--drop-dormant 5` to drop working feeds that haven't posted in 5 years.
+
 Tests: `venv/bin/python manage.py test apps.feeds`
 
 ## Deploying
@@ -163,8 +177,9 @@ apps/feeds/
     discovery.py        find the feed behind a URL
     sanitize.py         nh3 policy, text snippets
     opml.py             import / export
+    feedcheck.py        is a feed still there? (for prune_opml)
     http.py             GET with a size cap and redirect tracking
-  management/commands/  fetch_feeds, import_opml
+  management/commands/  fetch_feeds, import_opml, prune_opml
   templates/feeds/      reader shell, stream and item partials, manage page
   tests/
 static/js/reader.js     keyboard, read/star state, counts, scroll-to-read

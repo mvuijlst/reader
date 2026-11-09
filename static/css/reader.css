@@ -825,6 +825,22 @@ table.subs { width: 100%; border-collapse: collapse; font-size: 13px; }
 .subs .status-bad { color: var(--danger); }
 .subs .actions { white-space: nowrap; text-align: right; }
 .subs tr.htmx-request { opacity: 0.6; }
+/* Bulk selection (manage.js): a checkbox per row, a floating bar for the actions. */
+.subs .pick { width: 1%; padding-right: 0; }
+.subs .pick input { display: block; cursor: pointer; }
+.subs tbody tr { cursor: default; }
+.subs tr.is-selected td { background: var(--accent-soft); }
+.bulk-bar {
+  position: sticky; bottom: 16px; z-index: 5;
+  display: flex; align-items: center; gap: 8px;
+  width: fit-content; max-width: 100%; margin: 14px auto 0; padding: 6px 6px 6px 16px;
+  background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 999px;
+  box-shadow: var(--shadow);
+  animation: fadeUp 0.2s ease both;
+}
+.bulk-bar[hidden] { display: none; }
+.bulk-count { margin-right: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.bulk-bar .icon-btn { width: 30px; height: 30px; border-radius: 999px; }
 
 .narrow { max-width: 560px; }
 .candidates { display: grid; gap: 8px; }

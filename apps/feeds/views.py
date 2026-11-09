@@ -10,6 +10,7 @@ from django.db import IntegrityError, close_old_connections
 from django.db.models import Count, Max, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.defaultfilters import pluralize
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import cache_control
@@ -538,6 +539,29 @@ def _background_fetch(feed_ids=None):
             close_old_connections()
 
     threading.Thread(target=work, daemon=True, name="background-fetch").start()
+
+
+@login_required
+@require_POST
+def feeds_bulk(request):
+    """The Manage page's bulk actions on the selected feeds: fetch or unsubscribe."""
+    action = request.POST.get("action")
+    ids = {int(pk) for pk in request.POST.getlist("feeds") if pk.isdigit()}
+    feeds = Feed.objects.filter(pk__in=ids)
+    n = feeds.count()
+    if action not in ("fetch", "unsubscribe"):
+        messages.error(request, "Unknown action.")
+    elif not n:
+        messages.error(request, "Select one or more feeds first.")
+    elif action == "fetch":
+        # Due now, so the timer picks them up if the background run can't get the lock.
+        feeds.update(next_fetch_at=timezone.now())
+        _background_fetch(list(feeds.values_list("pk", flat=True)))
+        messages.success(request, f"Fetching {n} feed{pluralize(n)} in the background. Reload in a moment to see how they did.")
+    else:
+        feeds.delete()  # their items go too, starred ones included
+        messages.success(request, f"Unsubscribed from {n} feed{pluralize(n)}.")
+    return redirect(safe_next(request, "feeds:manage"))
 
 
 @login_required

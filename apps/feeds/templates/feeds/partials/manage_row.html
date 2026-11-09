@@ -1,6 +1,10 @@
 {% load reader_tags %}<tr id="feed-row-{{ feed.pk }}"
     hx-post="{% url 'feeds:feed-update' feed.pk %}" hx-trigger="change" hx-include="this"
     hx-target="this" hx-swap="outerHTML" hx-sync="this:replace">
+  <td class="pick">
+    {# Belongs to the bulk-actions form; manage.js keeps its change events away from this row's htmx save. #}
+    <input type="checkbox" class="bulk-check" name="feeds" value="{{ feed.pk }}" form="bulk-form" aria-label="Select {{ feed.name }}">
+  </td>
   <td class="name">
     <div class="name-line">
       {% include "feeds/partials/favicon.html" %}

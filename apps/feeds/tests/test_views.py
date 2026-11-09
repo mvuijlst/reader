@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -295,6 +296,48 @@ class ReaderViewTests(TestCase):
     def test_unsubscribe_deletes_items(self):
         self.client.post(reverse("feeds:feed-unsubscribe", args=[self.feed.pk]))
         self.assertFalse(Item.objects.filter(feed_id=self.feed.pk).exists())
+
+    def test_manage_rows_can_be_selected_for_bulk_actions(self):
+        response = self.client.get(reverse("feeds:manage"))
+        self.assertContains(response, 'id="bulk-form"')
+        self.assertContains(response, f'class="bulk-check" name="feeds" value="{self.feed.pk}" form="bulk-form"')
+        self.assertContains(response, "js/manage")
+
+    def test_bulk_unsubscribe(self):
+        third = Feed.objects.create(url="https://c.example/feed", title="Feed C")
+        back = reverse("feeds:manage") + "?sort=name"
+        response = self.client.post(
+            reverse("feeds:feeds-bulk"),
+            {"action": "unsubscribe", "feeds": [self.feed.pk, third.pk, "nonsense", 9999], "next": back},
+        )
+        self.assertRedirects(response, back, fetch_redirect_response=False)  # back to the same sort
+        self.assertEqual(list(Feed.objects.values_list("pk", flat=True)), [self.other.pk])
+        self.assertFalse(Item.objects.filter(feed_id=self.feed.pk).exists())
+        self.assertContains(self.client.get(back), "Unsubscribed from 2 feeds.")
+
+    def test_bulk_fetch_runs_in_the_background(self):
+        later = timezone.now() + timedelta(hours=1)
+        Feed.objects.update(next_fetch_at=later)
+        with mock.patch("apps.feeds.views._background_fetch") as background:
+            self.client.post(reverse("feeds:feeds-bulk"), {"action": "fetch", "feeds": [self.other.pk]})
+        background.assert_called_once_with([self.other.pk])
+        self.other.refresh_from_db()
+        self.feed.refresh_from_db()
+        self.assertLess(self.other.next_fetch_at, later)  # due now, in case the background run can't start
+        self.assertEqual(self.feed.next_fetch_at, later)  # unselected feeds untouched
+
+    def test_bulk_needs_a_selection_and_a_known_action(self):
+        url = reverse("feeds:feeds-bulk")
+        cases = [
+            ({"action": "unsubscribe"}, "Select one or more feeds first."),
+            ({"action": "explode", "feeds": [self.feed.pk]}, "Unknown action."),
+        ]
+        for data, message in cases:
+            with self.subTest(message), mock.patch("apps.feeds.views._background_fetch") as background:
+                self.assertContains(self.client.post(url, data, follow=True), message)
+                background.assert_not_called()
+        self.assertEqual(Feed.objects.count(), 2)
+        self.assertEqual(self.client.get(url).status_code, 405)
 
     def test_opml_export(self):
         response = self.client.get(reverse("feeds:opml-export"))
