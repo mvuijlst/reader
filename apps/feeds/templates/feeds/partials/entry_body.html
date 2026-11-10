@@ -1,7 +1,7 @@
 {% load reader_tags %}<div class="entry-card">
   <h2 class="entry-title">
     {% if not in_list %}<button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>{% include "feeds/partials/disregard_btn.html" %}{% endif %}
-    {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener noreferrer" data-action="open-original">{{ item.title|default:"(untitled)" }}</a>{% else %}<span>{{ item.title|default:"(untitled)" }}</span>{% endif %}
+    {% if item.title %}{% with heading=item.title %}{% include "feeds/partials/entry_heading.html" %}{% endwith %}{% else %}{% with heading=item.published|readerdatetime %}{% include "feeds/partials/entry_heading.html" %}{% endwith %}{% endif %}
   </h2>
   <div class="entry-meta">
     {% if show_source %}<a class="entry-source" href="{{ item.feed.get_absolute_url }}" hx-get="{{ item.feed.get_absolute_url }}" hx-target="#main" hx-push-url="true">{% include "feeds/partials/favicon.html" with feed=item.feed %}{{ item.feed.name }}</a>{% endif %}

@@ -219,6 +219,32 @@ class ReaderViewTests(TestCase):
             expected = per_item * len(response.context["items"])
             self.assertContains(response, 'data-action="disregard"', count=expected, msg_prefix=mode)
 
+    def test_untitled_items(self):
+        Item.objects.all().delete()
+        make_item(
+            self.feed, 1, title="", content="<p>First line here</p><p>Second paragraph</p>",
+            summary="First line here Second paragraph",
+        )
+        url = reverse("feeds:all")
+
+        def show(mode):
+            self.client.post(reverse("feeds:prefs"), {"view_mode": mode}, HTTP_X_REQUESTED_WITH="fetch")
+            return self.client.get(url)
+
+        for mode in ("expanded", "list", "cards", "magazine"):
+            self.assertNotContains(show(mode), "(untitled)", msg_prefix=mode)
+        # List: the first line is the title, the rest the snippet.
+        response = show("list")
+        self.assertContains(response, '<span class="row-title">First line here</span>')
+        self.assertContains(response, "Second paragraph")
+        # Cards and magazine: no heading at all.
+        self.assertNotContains(show("cards"), 'class="card-title"')
+        self.assertNotContains(show("magazine"), 'class="mag-title"')
+        # Expanded: the date and time stand in as the title.
+        item = Item.objects.get()
+        from apps.feeds.templatetags.reader_tags import readerdatetime
+        self.assertContains(show("expanded"), f">{readerdatetime(item.published)}</a>")
+
     def test_search(self):
         response = self.client.get(reverse("feeds:search"), {"q": "zebra"})
         self.assertEqual([i.title for i in response.context["items"]], ["Something about zebras"])

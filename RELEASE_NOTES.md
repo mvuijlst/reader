@@ -13,6 +13,11 @@ append every fix to the running list at the bottom.
 - Mobile: a "Mark all as read" button under "You've reached the end."
   (`4d46ac0`)
 
+### Changed
+- Items without a title: list view shows the first line of the content as
+  the title, card and magazine views show just the content (no
+  "(untitled)"), and the open article uses its date and time as the title.
+
 ### Fixed
 - The same article appearing several times when it is in more than one feed
   (for example BBC section feeds). A new item is skipped if another feed

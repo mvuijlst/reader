@@ -12,7 +12,7 @@
         {% if show_source %}<span class="mag-pill">{{ item.feed.name }}</span>{% endif %}
         <div class="mag-overlay-text">
           <span class="mag-overlay-meta"><time datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|ago }}</time>{% if item.feed.open_on_site and item.url %}<span class="site-note"><svg class="ico site-ico"><use href="#i-external"/></svg>{{ item.url|domain }}</span>{% endif %}</span>
-          <h3 class="mag-title">{{ item.title|default:"(untitled)" }}</h3>
+          {% if item.title %}<h3 class="mag-title">{{ item.title }}</h3>{% endif %}
           {% if item.mag_slot == "hero" and item.summary %}<p class="mag-snippet">{{ item.summary }}</p>{% endif %}
         </div>
       </div>
@@ -21,7 +21,7 @@
     {% if not item.mag_slot %}
     <div class="mag-text">
       <div class="mag-meta">{% if show_source %}<span class="mag-source">{{ item.feed.name }}</span> · {% endif %}<time datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|ago }}</time>{% if item.feed.open_on_site and item.url %}<span class="site-note"><svg class="ico site-ico"><use href="#i-external"/></svg>{{ item.url|domain }}</span>{% endif %}</div>
-      <h3 class="mag-title">{{ item.title|default:"(untitled)" }}</h3>
+      {% if item.title %}<h3 class="mag-title">{{ item.title }}</h3>{% endif %}
     </div>
     {% endif %}
   </div>

@@ -6,6 +6,8 @@ from django import template
 from django.utils import dateformat, timezone
 from django.utils.timesince import timesince
 
+from apps.feeds.services.sanitize import _BREAKS, clean_text
+
 register = template.Library()
 
 
@@ -74,3 +76,19 @@ def per_week(recent_30_days):
     if rate == 0:
         return "0"
     return f"{rate:.1f}" if rate < 10 else f"{rate:.0f}"
+
+
+@register.simple_tag
+def row_text(item, limit=140):
+    """Title and snippet for a list row. An item without a title borrows the first
+    line of its content, and the snippet continues after it."""
+    if item.title:
+        return {"title": item.title, "snippet": item.summary}
+    first = next((t for t in (clean_text(b) for b in _BREAKS.split(item.content or "")) if t), "")
+    if len(first) > limit:
+        first = first[:limit].rsplit(" ", 1)[0].rstrip(",.;:-–— ") + "…"
+    snippet = item.summary
+    head = first.rstrip("…")
+    if head and snippet.startswith(head):
+        snippet = snippet[len(head):].lstrip(" …")
+    return {"title": first, "snippet": snippet}

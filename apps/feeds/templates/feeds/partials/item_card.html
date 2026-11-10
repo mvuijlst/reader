@@ -4,7 +4,7 @@
     {% if item.thumbnail %}<div class="card-media pic"><img class="pic-backdrop" src="{{ item.thumbnail }}" alt="" aria-hidden="true" loading="lazy" decoding="async"><img class="pic-img" src="{{ item.thumbnail }}" alt="" loading="lazy" decoding="async"></div>{% endif %}
     <div class="card-text">
       {% if show_source %}<div class="card-source">{% include "feeds/partials/favicon.html" with feed=item.feed %}<span>{{ item.feed.name }}</span></div>{% endif %}
-      <h3 class="card-title">{{ item.title|default:"(untitled)" }}</h3>
+      {% if item.title %}<h3 class="card-title">{{ item.title }}</h3>{% endif %}
       {% if item.summary %}<p class="card-snippet">{{ item.summary }}</p>{% endif %}
     </div>
   </div>

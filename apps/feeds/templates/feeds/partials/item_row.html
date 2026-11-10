@@ -4,7 +4,7 @@
     <button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>
     {% include "feeds/partials/disregard_btn.html" %}
     {% if show_source %}<span class="row-source">{{ item.feed.name }}</span>{% endif %}
-    <span class="row-text"><span class="row-title">{{ item.title|default:"(untitled)" }}</span>{% if item.summary %}<span class="row-snippet"> – {{ item.summary }}</span>{% endif %}</span>
+    {% row_text item as rt %}<span class="row-text"><span class="row-title">{{ rt.title }}</span>{% if rt.snippet %}<span class="row-snippet"> – {{ rt.snippet }}</span>{% endif %}</span>
     {% if item.feed.open_on_site and item.url %}<svg class="ico site-ico" role="img" aria-label="Opens on {{ item.url|domain }}"><title>Opens on {{ item.url|domain }}</title><use href="#i-external"/></svg>{% endif %}
     <time class="row-date" datetime="{{ item.published|date:'c' }}" title="{{ item.published|readerdatetime }}">{{ item.published|readerdate }}</time>
   </div>
