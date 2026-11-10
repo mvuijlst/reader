@@ -7,6 +7,9 @@ append every fix to the running list at the bottom.
 ## 2026-11-10
 
 ### Added
+- `manage.py upgrade_https` (one-off, with `--dry-run`): switches http://
+  subscriptions to https:// when the https address serves the feed, for
+  feeds that came from an old OPML file. Items and read state are kept.
 - Mobile: a "Mark all as read" button under "You've reached the end."
   (`4d46ac0`)
 

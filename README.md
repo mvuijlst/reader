@@ -106,6 +106,15 @@ venv/bin/python manage.py fetch_feeds --all      # everything, now
 venv/bin/python manage.py import_opml subscriptions.opml
 ```
 
+Old exports also tend to list feeds over plain `http://`. `upgrade_https` switches the
+subscriptions it can to `https://` (only when the https address serves the feed;
+items and read state are kept). Run it once, with `--dry-run` first to see the changes:
+
+```bash
+venv/bin/python manage.py upgrade_https --dry-run
+venv/bin/python manage.py upgrade_https
+```
+
 An old export (Google Reader, Feedly) is usually full of feeds that died years ago.
 `prune_opml` checks every feed and writes a cleaned copy plus a CSV report, leaving
 the original alone:
