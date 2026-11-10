@@ -244,6 +244,7 @@ class ReaderViewTests(TestCase):
         item = Item.objects.get()
         from apps.feeds.templatetags.reader_tags import readerdatetime
         self.assertContains(show("expanded"), f">{readerdatetime(item.published)}</a>")
+        self.assertContains(show("expanded"), readerdatetime(item.published), count=1)  # not repeated in the meta line
 
     def test_search(self):
         response = self.client.get(reverse("feeds:search"), {"q": "zebra"})

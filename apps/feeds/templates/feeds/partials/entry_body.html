@@ -6,7 +6,7 @@
   <div class="entry-meta">
     {% if show_source %}<a class="entry-source" href="{{ item.feed.get_absolute_url }}" hx-get="{{ item.feed.get_absolute_url }}" hx-target="#main" hx-push-url="true">{% include "feeds/partials/favicon.html" with feed=item.feed %}{{ item.feed.name }}</a>{% endif %}
     {% if item.author %}<span class="entry-author">{% if show_source %}by {% endif %}{{ item.author }}</span>{% endif %}
-    <time datetime="{{ item.published|date:'c' }}">{{ item.published|readerdatetime }}</time>
+    {% if item.title %}<time datetime="{{ item.published|date:'c' }}">{{ item.published|readerdatetime }}</time>{% endif %}
   </div>
   <div class="entry-body">
     {% if item.image %}<p class="entry-lead"><img src="{{ item.image }}" alt="" loading="lazy" decoding="async"></p>{% endif %}
