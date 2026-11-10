@@ -73,6 +73,7 @@ img, video { max-width: 100%; }
 [data-theme="dark"] .when-light,
 [data-theme="light"] .when-dark { display: none; }
 .show-sm { display: none; }
+.end-actions { margin: 14px 0 0; }
 
 /* --- form controls ------------------------------------------------------- */
 

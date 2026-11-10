@@ -25,5 +25,10 @@
     <span class="spinner" aria-hidden="true"></span> Loading more…
   </div>
 {% elif items or is_continuation %}
-  <div class="end"><p>You've reached the end.</p></div>
+  <div class="end">
+    <p>You've reached the end.</p>
+    {% if unread_count is not None %}
+    <p class="end-actions show-sm"><button class="btn btn-outline btn-sm" type="button" data-action="mark-all-read"><svg class="ico"><use href="#i-check"/></svg>Mark all as read</button></p>
+    {% endif %}
+  </div>
 {% endif %}
