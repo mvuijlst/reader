@@ -309,10 +309,21 @@ def store_entries(feed, entries, now):
     days = settings.READER_AUTO_READ_DAYS
     auto_read_before = now - timedelta(days=days) if days else None
 
+    # The same article often appears in several feeds (e.g. BBC's section feeds).
+    # Keep the first copy and skip the rest, so lists don't show it repeatedly.
+    new_urls = [e["url"] for e in entries if e["url"] and e["guid_hash"] not in existing]
+    seen_elsewhere = (
+        set(Item.objects.filter(url__in=new_urls).exclude(feed=feed).values_list("url", flat=True))
+        if new_urls
+        else set()
+    )
+
     to_create, to_update = [], []
     for entry in entries:
         item = existing.get(entry["guid_hash"])
         if item is None:
+            if entry["url"] and entry["url"] in seen_elsewhere:
+                continue
             old = bool(auto_read_before and entry["published"] < auto_read_before)
             to_create.append(
                 Item(feed=feed, last_seen_at=now, is_read=old, read_at=now if old else None, **entry)
