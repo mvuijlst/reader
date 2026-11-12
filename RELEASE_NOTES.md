@@ -4,6 +4,15 @@ Newest first. Each entry lists what was added or changed, and under
 **Fixed** the issues that were resolved. Add new entries at the top, and
 append every fix to the running list at the bottom.
 
+## 2026-11-12
+
+### Changed
+- "Mark all as read" (shift+a, or the button) while showing only new items
+  now goes on to the next feed with new items, or for a folder the next
+  folder with new items, wrapping around in sidebar order. In "All items"
+  mode, or when nothing else is new, it stays put as before. (`065ea08`,
+  issue #1)
+
 ## 2026-11-10
 
 ### Added
