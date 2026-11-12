@@ -397,7 +397,13 @@
     if (!s || !$('[data-action="mark-all-read"]', s)) return;
     const scope = s.dataset.scope;
     const n = +($('.js-unread-count')?.dataset.n || 0);
-    if (!n) { toast('Nothing to mark.'); return; }
+    // Reading only new items: a feed moves on to the next feed with new items,
+    // a folder to the next folder with new items, also when it had none left.
+    const nextScope = () => (s.dataset.unreadOnly === '1' ? nextUnreadScope(scope) : null);
+    if (!n) {
+      if (!goNext(nextScope(), 'Nothing new here')) toast('Nothing to mark.');
+      return;
+    }
     if (scope === 'all') {
       const ok = await appConfirm({
         title: `Mark all ${n} items as read?`,
@@ -414,17 +420,19 @@
       return;
     }
     const marked = `Marked ${res.marked} item${res.marked === 1 ? '' : 's'} as read`;
-    // Reading only new items: a feed moves on to the next feed with new items,
-    // a folder to the next folder with new items.
-    const next = s.dataset.unreadOnly === '1' ? nextUnreadScope(scope) : null;
-    if (next) {
-      toast(`${marked}. Next: ${$('.label', next)?.textContent.trim() || 'next'}.`);
-      go(next.getAttribute('href'));
-      refreshNav();
-    } else {
+    if (!goNext(nextScope(), marked)) {
       toast(`${marked}.`);
       reload();
     }
+  }
+
+  // Open sidebar entry `next`, saying so after `message`. False if there's none.
+  function goNext(next, message) {
+    if (!next) return false;
+    toast(`${message}. Next: ${$('.label', next)?.textContent.trim() || 'next'}.`);
+    go(next.getAttribute('href'));
+    refreshNav();
+    return true;
   }
 
   // The sidebar entry after `scope` (wrapping around) that has new items, of

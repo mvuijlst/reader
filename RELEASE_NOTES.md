@@ -12,6 +12,8 @@ append every fix to the running list at the bottom.
   folder with new items, wrapping around in sidebar order. In "All items"
   mode, or when nothing else is new, it stays put as before. (`065ea08`,
   issue #1)
+- Shift+a on a feed or folder that has no new items left goes on to the
+  next one with new items too, instead of saying "Nothing to mark."
 
 ## 2026-11-10
 
