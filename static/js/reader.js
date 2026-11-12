@@ -406,13 +406,38 @@
       });
       if (!ok) return;
     }
+    let res;
     try {
-      const res = await post('/api/mark-all-read/', { scope, max_id: s.dataset.maxId });
-      toast(`Marked ${res.marked} item${res.marked === 1 ? '' : 's'} as read.`);
-      reload();
+      res = await post('/api/mark-all-read/', { scope, max_id: s.dataset.maxId });
     } catch (e) {
       toast("Couldn't mark items as read.");
+      return;
     }
+    const marked = `Marked ${res.marked} item${res.marked === 1 ? '' : 's'} as read`;
+    // Reading only new items: a feed moves on to the next feed with new items,
+    // a folder to the next folder with new items.
+    const next = s.dataset.unreadOnly === '1' ? nextUnreadScope(scope) : null;
+    if (next) {
+      toast(`${marked}. Next: ${$('.label', next)?.textContent.trim() || 'next'}.`);
+      go(next.getAttribute('href'));
+      refreshNav();
+    } else {
+      toast(`${marked}.`);
+      reload();
+    }
+  }
+
+  // The sidebar entry after `scope` (wrapping around) that has new items, of
+  // the same kind: feed after a feed, folder after a folder. Collapsed folders
+  // and the "only feeds with new items" filter don't matter here.
+  function nextUnreadScope(scope) {
+    const kind = scope.split(':')[0];
+    if (kind !== 'feed' && kind !== 'folder') return null;
+    const list = $$(`#nav-tree .nav-item[data-scope^="${kind}:"]`);
+    const index = list.findIndex((el) => el.dataset.scope === scope);
+    if (index === -1) return null;
+    const ordered = [...list.slice(index + 1), ...list.slice(0, index)];
+    return ordered.find((el) => +($('.count', el)?.dataset.n || 0) > 0) || null;
   }
 
   // --- sidebar --------------------------------------------------------------
