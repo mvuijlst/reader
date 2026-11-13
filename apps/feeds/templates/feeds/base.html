@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#141414">
   <title>{% block title %}Reader{% endblock %}</title>
   <link rel="icon" href="{% static 'img/icon.svg' %}" type="image/svg+xml">
+  <link rel="manifest" href="{% url 'feeds:manifest' %}">
   <script src="{% static 'js/base.js' %}"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

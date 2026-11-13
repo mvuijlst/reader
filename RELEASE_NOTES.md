@@ -4,6 +4,19 @@ Newest first. Each entry lists what was added or changed, and under
 **Fixed** the issues that were resolved. Add new entries at the top, and
 append every fix to the running list at the bottom.
 
+## 2026-11-13
+
+### Added
+- Reader installs as an app on Android: Chrome's "Install" works, and the
+  app opens full screen with the orange feed icon. When the server can't be
+  reached, the installed app says so and offers "Try again" instead of a
+  browser error. `tools/make_icons.py` draws the PNG icons from the same
+  shapes as `static/img/icon.svg`. (issue #2)
+
+### Fixed
+- Chrome on Android said "This app cannot be installed": the site had no web
+  app manifest. (issue #2)
+
 ## 2026-11-12
 
 ### Changed

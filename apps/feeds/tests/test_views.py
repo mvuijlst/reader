@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles import finders
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -370,3 +371,31 @@ class ReaderViewTests(TestCase):
         response = self.client.get(reverse("feeds:opml-export"))
         self.assertIn(b'xmlUrl="https://a.example/feed"', response.content)
         self.assertIn("attachment", response["Content-Disposition"])
+
+
+class InstallableAppTests(TestCase):
+    """Android only offers to install the site as an app with a manifest that
+    has bitmap icons at 192 and 512 pixels, reachable without logging in."""
+
+    def test_manifest(self):
+        response = self.client.get("/manifest.webmanifest")
+        self.assertEqual(response.status_code, 200)  # no login needed
+        self.assertEqual(response["Content-Type"], "application/manifest+json")
+        manifest = response.json()
+        self.assertEqual(manifest["start_url"], "/")
+        self.assertEqual(manifest["display"], "standalone")
+        icons = {(icon["sizes"], icon["purpose"]): icon["src"] for icon in manifest["icons"]}
+        for size in ("192x192", "512x512"):
+            for purpose in ("any", "maskable"):
+                src = icons[(size, purpose)]
+                path = finders.find(src.removeprefix("/static/"))
+                self.assertIsNotNone(path, src)
+
+    def test_service_worker_at_the_root(self):
+        response = self.client.get("/sw.js")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response["Content-Type"].startswith("text/javascript"))
+        self.assertIn(b"addEventListener('fetch'", response.content)
+
+    def test_pages_link_the_manifest(self):
+        self.assertContains(self.client.get(reverse("login")), 'rel="manifest" href="/manifest.webmanifest"')

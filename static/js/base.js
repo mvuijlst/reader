@@ -1,6 +1,7 @@
 // Loaded in <head> on every page: applies the saved theme before first paint
 // (dark is the default), handles the theme toggle, and provides the in-app
-// dialog that replaces the browser's confirm() and prompt().
+// dialog that replaces the browser's confirm() and prompt(), and registers the
+// service worker.
 (function () {
   var root = document.documentElement;
   var saved = null;
@@ -14,6 +15,13 @@
     root.setAttribute('data-theme', next);
     try { localStorage.setItem('reader.theme', next); } catch (e2) { /* ignore */ }
   });
+
+  // The service worker makes Reader installable as an app (see feeds/sw.js).
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () { /* the site works without it */ });
+    });
+  }
 
   // --- in-app dialog ----------------------------------------------------------
   // appConfirm({title, message, confirmLabel, danger}) resolves true or false.

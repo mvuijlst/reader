@@ -11,10 +11,11 @@ from django.db.models import Count, Max, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.defaultfilters import pluralize
+from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import cache_control
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from .models import Feed, Folder, Item, Preferences
 from .services import discovery, fetcher, magazine, opml
@@ -604,3 +605,44 @@ def opml_import(request):
     else:
         messages.info(request, f"Nothing new to import ({skipped} skipped).")
     return redirect("feeds:manage")
+
+
+# --- installable web app -----------------------------------------------------
+# Both of these are outside the login: the browser fetches the manifest without
+# cookies, and the service worker has to sit at the root to cover every page.
+
+
+@require_GET
+def web_manifest(request):
+    """What Android needs to install Reader as an app: a name, a start page and
+    bitmap icons at 192 and 512 pixels (tools/make_icons.py draws them)."""
+    icons = [
+        {
+            "src": static(f"img/app-{kind}{size}.png"),
+            "sizes": f"{size}x{size}",
+            "type": "image/png",
+            "purpose": purpose,
+        }
+        for kind, purpose in (("", "any"), ("maskable-", "maskable"))
+        for size in (192, 512)
+    ]
+    manifest = {
+        "id": "/",
+        "name": "Reader",
+        "short_name": "Reader",
+        "description": "A feed reader.",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "background_color": "#141414",
+        "theme_color": "#141414",
+        "icons": icons,
+    }
+    return JsonResponse(manifest, content_type="application/manifest+json")
+
+
+@require_GET
+def service_worker(request):
+    response = render(request, "feeds/sw.js", content_type="text/javascript; charset=utf-8")
+    response["Cache-Control"] = "no-cache"
+    return response
