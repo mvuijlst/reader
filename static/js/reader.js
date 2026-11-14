@@ -263,7 +263,7 @@
   function toggleOpen(item) {
     if (!item) return;
     if (opensOnSite(item)) {
-      // One step to the article: new tab, item marked read, highlight follows.
+      // One step to the article: new tab, highlight follows.
       if (overlayOpen()) closeOverlay();
       select(item, { read: false, scroll: false });
       openOriginal(item);
@@ -286,13 +286,11 @@
     openedOriginal(item);
   }
 
-  // The article was opened in another tab: that counts as read, even if the item
-  // was set to "keep unread". Items from open-on-site feeds are then done, so
-  // they also leave a "new items" list straight away.
+  // Opening an original article counts as read, except for open-on-site feeds:
+  // keep those items available in the new-items list so they can still be starred.
   function openedOriginal(item) {
-    if (!item) return;
+    if (!item || opensOnSite(item)) return;
     setRead(item, true, { explicit: true });
-    if (opensOnSite(item) && stream()?.dataset.unreadOnly === '1') dismiss(item);
   }
 
   // The eye button: mark a post read without opening it (and, with "new items"
