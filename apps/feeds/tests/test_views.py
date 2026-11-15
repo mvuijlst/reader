@@ -270,8 +270,11 @@ class ReaderViewTests(TestCase):
         self.assertEqual(html.count('class="day-head day-cont"'), 1)  # …and the rest are hidden
         self.assertEqual(html.count('class="day-head"'), 3)
         for hm in ("23:38", "23:36", "15:36", "09:05"):
-            self.assertIn(f">{hm}</a>", html)
+            self.assertIn(f">{hm}</a></h3>", html)  # the time alone, no star or read button
         self.assertIn(">Item 3</a>", html)
+        # Star and read buttons: in the heading of the titled post only, in every footer.
+        self.assertEqual(html.count('class="star-btn"'), 1)
+        self.assertEqual(html.count('class="act act-star"'), 5)
 
     def test_search(self):
         response = self.client.get(reverse("feeds:search"), {"q": "zebra"})

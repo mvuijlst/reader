@@ -9,7 +9,8 @@ append every fix to the running list at the bottom.
 ### Changed
 - Posts without a title (journals, microblogs) in the expanded view no
   longer repeat the full date on each post. A heading names the day once,
-  and each post below it is headed by its time alone. The day heading
+  and each post below it is headed by its time alone, with star and read
+  only at its foot (these posts are short). The day heading
   comes back after a titled post from another feed, carries on across
   pages as they load, and moves to the next post when the first one is
   dismissed.

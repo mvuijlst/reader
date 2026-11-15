@@ -663,10 +663,13 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 .entry:not(.unread) .entry-title a { color: var(--text-2); }
 /* Untitled posts (journals, microblogs): one day heading over each run of them,
    and each post headed by its time alone. */
-.day-head { margin: 0 0 10px; font-size: 23px; font-weight: 700; line-height: 1.28; letter-spacing: -0.015em; }
+.day-head { margin: 0 0 12px; font-size: 23px; font-weight: 700; line-height: 1.28; letter-spacing: -0.015em; }
 .day-head.day-cont { display: none; }
-.entry-time { align-items: center; font-size: 15px; font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; }
-.entry-time .star-btn, .entry-time .read-btn { margin-top: 0; }
+/* The time sits right on top of its post; the meta line (source, author) only
+   comes in between when it has something to say. */
+.entry-time { margin-bottom: 4px; font-size: 15px; font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.entry-time + .entry-meta { margin: 0 0 8px; }
+.entry-time + .entry-meta:not(:has(*)) { display: none; }
 .entry-meta {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
   margin: 8px 0 18px;
