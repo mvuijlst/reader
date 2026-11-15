@@ -1,7 +1,8 @@
 {% load reader_tags %}<div class="entry-card">
-  <h2 class="entry-title">
+  {% if by_day and item.day %}<h2 class="day-head{% if not item.new_day %} day-cont{% endif %}"><time datetime="{{ item.day|date:'Y-m-d' }}">{{ item.day|readerday }}</time></h2>{% endif %}
+  <h2 class="entry-title{% if by_day and item.day %} entry-time{% endif %}"{% if by_day and item.day %} aria-level="3"{% endif %}>
     {% if not in_list %}<button class="star-btn" type="button" data-action="star" aria-label="Star" title="Star (s)"><svg class="ico"><use href="#i-star"/></svg></button>{% include "feeds/partials/disregard_btn.html" %}{% endif %}
-    {% if item.title %}{% with heading=item.title %}{% include "feeds/partials/entry_heading.html" %}{% endwith %}{% else %}{% with heading=item.published|readerdatetime %}{% include "feeds/partials/entry_heading.html" %}{% endwith %}{% endif %}
+    {% if item.title %}{% with heading=item.title %}{% include "feeds/partials/entry_heading.html" %}{% endwith %}{% elif by_day and item.day %}{% with heading=item.published|time:"H:i" %}{% include "feeds/partials/entry_heading.html" %}{% endwith %}{% else %}{% with heading=item.published|readerdatetime %}{% include "feeds/partials/entry_heading.html" %}{% endwith %}{% endif %}
   </h2>
   <div class="entry-meta">
     {% if show_source %}<a class="entry-source" href="{{ item.feed.get_absolute_url }}" hx-get="{{ item.feed.get_absolute_url }}" hx-target="#main" hx-push-url="true">{% include "feeds/partials/favicon.html" with feed=item.feed %}{{ item.feed.name }}</a>{% endif %}

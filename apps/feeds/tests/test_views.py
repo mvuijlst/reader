@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.feeds.models import Feed, Folder, Item, Preferences
+from apps.feeds.templatetags.reader_tags import readerdatetime, readerday
 
 
 def make_item(feed, n, **kwargs):
@@ -241,11 +242,36 @@ class ReaderViewTests(TestCase):
         # Cards and magazine: no heading at all.
         self.assertNotContains(show("cards"), 'class="card-title"')
         self.assertNotContains(show("magazine"), 'class="mag-title"')
-        # Expanded: the date and time stand in as the title.
+        # Expanded: the time stands in as the title, under a heading for the day.
         item = Item.objects.get()
-        from apps.feeds.templatetags.reader_tags import readerdatetime
-        self.assertContains(show("expanded"), f">{readerdatetime(item.published)}</a>")
-        self.assertContains(show("expanded"), readerdatetime(item.published), count=1)  # not repeated in the meta line
+        local = timezone.localtime(item.published)
+        response = show("expanded")
+        self.assertContains(response, f'>{local:%H:%M}</a>')
+        self.assertContains(response, f'<h2 class="day-head"><time datetime="{local:%Y-%m-%d}">{readerday(local.date())}</time></h2>')
+        # Opened from the list, it still shows the whole date.
+        self.assertContains(show("list"), f">{readerdatetime(item.published)}</a>")
+
+    def test_untitled_items_grouped_by_day(self):
+        Item.objects.all().delete()
+        day = timezone.localdate() - timedelta(days=3)
+        at = lambda d, h, m: timezone.make_aware(datetime.combine(d, time(h, m)))  # noqa: E731
+        make_item(self.feed, 1, title="", published=at(day, 23, 38))
+        make_item(self.feed, 2, title="", published=at(day, 23, 36))
+        make_item(self.other, 3, published=at(day, 20, 0))  # a titled post breaks the run
+        make_item(self.feed, 4, title="", published=at(day, 15, 36))
+        make_item(self.feed, 5, title="", published=at(day - timedelta(days=1), 9, 5))
+        self.client.post(reverse("feeds:prefs"), {"view_mode": "expanded"}, HTTP_X_REQUESTED_WITH="fetch")
+        response = self.client.get(reverse("feeds:all"))
+        html = response.content.decode()
+
+        self.assertEqual([i.new_day for i in response.context["items"]], [True, False, False, True, True])
+        self.assertEqual(html.count(f'data-day="{day:%Y-%m-%d}"'), 3)
+        self.assertEqual(html.count(f">{readerday(day)}</time>"), 3)  # each run gets one…
+        self.assertEqual(html.count('class="day-head day-cont"'), 1)  # …and the rest are hidden
+        self.assertEqual(html.count('class="day-head"'), 3)
+        for hm in ("23:38", "23:36", "15:36", "09:05"):
+            self.assertIn(f">{hm}</a>", html)
+        self.assertIn(">Item 3</a>", html)
 
     def test_search(self):
         response = self.client.get(reverse("feeds:search"), {"q": "zebra"})

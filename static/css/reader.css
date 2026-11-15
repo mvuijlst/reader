@@ -661,6 +661,12 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
 .entry-title a { color: var(--text); text-decoration: none; }
 .entry-title a:hover { color: var(--accent); }
 .entry:not(.unread) .entry-title a { color: var(--text-2); }
+/* Untitled posts (journals, microblogs): one day heading over each run of them,
+   and each post headed by its time alone. */
+.day-head { margin: 0 0 10px; font-size: 23px; font-weight: 700; line-height: 1.28; letter-spacing: -0.015em; }
+.day-head.day-cont { display: none; }
+.entry-time { align-items: center; font-size: 15px; font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.entry-time .star-btn, .entry-time .read-btn { margin-top: 0; }
 .entry-meta {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
   margin: 8px 0 18px;
@@ -899,7 +905,8 @@ table.subs { width: 100%; border-collapse: collapse; font-size: 13px; }
   .toolbar .btn-sm { padding: 5px 8px; }
   .toolbar .icon-btn { width: 32px; height: 32px; }
   .entry { padding: 20px 16px 14px; }
-  .entry-title { font-size: 20px; }
+  .entry-title, .day-head { font-size: 20px; }
+  .entry-time { font-size: 15px; }
   .entry-body { font-size: 16px; }
   .row-head { flex-wrap: wrap; height: auto; row-gap: 0; padding: 9px 14px 9px 6px; }
   .row-source { flex: 1 1 0; font-size: 12px; }

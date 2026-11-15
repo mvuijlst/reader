@@ -4,6 +4,16 @@ Newest first. Each entry lists what was added or changed, and under
 **Fixed** the issues that were resolved. Add new entries at the top, and
 append every fix to the running list at the bottom.
 
+## 2026-11-16
+
+### Changed
+- Posts without a title (journals, microblogs) in the expanded view no
+  longer repeat the full date on each post. A heading names the day once,
+  and each post below it is headed by its time alone. The day heading
+  comes back after a titled post from another feed, carries on across
+  pages as they load, and moves to the next post when the first one is
+  dismissed.
+
 ## 2026-11-13
 
 ### Added

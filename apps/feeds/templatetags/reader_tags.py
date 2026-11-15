@@ -33,6 +33,15 @@ def readerdatetime(value):
     return dateformat.format(local, fmt)
 
 
+@register.filter
+def readerday(value):
+    """Day heading over untitled posts: 'Sunday 15 November', with the year before this one."""
+    if not value:
+        return ""
+    fmt = "l j F" if value.year == timezone.localdate().year else "l j F Y"
+    return dateformat.format(value, fmt)
+
+
 # Art-deco backdrops for posts without a picture (tiles: tools/make_patterns.py).
 DECO_PATTERNS = ("scales", "fans", "arches", "gables", "ogee")
 DECO_TINTS = 8

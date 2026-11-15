@@ -305,6 +305,18 @@
     }
   }
 
+  // Untitled posts in the expanded view sit under one heading per day (see
+  // _mark_days in views.py). Pages arrive in pieces and dismissed items leave,
+  // so show the heading on whichever post now starts each day's run.
+  function markDays() {
+    let prev = '';
+    for (const item of items()) {
+      const day = item.dataset.day || '';
+      $(':scope > .entry-card > .day-head', item)?.classList.toggle('day-cont', day !== '' && day === prev);
+      prev = day;
+    }
+  }
+
   function dismiss(item) {
     if (!item.isConnected || item.classList.contains('leaving')) return;
     const line = main.getBoundingClientRect().top + headHeight() + 16;
@@ -321,6 +333,7 @@
     setTimeout(() => {
       const next = item.nextElementSibling;
       item.remove();
+      markDays();
       // Expanded view: don't let the next item slide under the toolbar line,
       // where scrolling would mark it read before you've seen it.
       if (wasAtTop && next?.classList.contains('item')) {
@@ -776,6 +789,7 @@
     }
     // Cached pictures can finish loading before their load listener sees them.
     fitLoadedPictures(main);
+    markDays();
   });
 
   document.body.addEventListener('htmx:responseError', () => toast('The server had a problem with that.'));

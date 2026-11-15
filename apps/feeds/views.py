@@ -81,6 +81,17 @@ def _parse_cursor(value):
         return None
 
 
+def _mark_days(items):
+    """Untitled posts (journals, microblogs) are headed by their time in the expanded
+    view, under a day heading shown once per run of them from the same day. reader.js
+    redoes this across loaded pages and dismissed items."""
+    prev = None
+    for item in items:
+        item.day = None if item.title else timezone.localtime(item.published).date()
+        item.new_day = item.day is not None and item.day != prev
+        prev = item.day
+
+
 def _stream(request, kind, obj=None):
     prefs = Preferences.load()
     items = Item.objects.select_related("feed").defer("feed__icon")
@@ -138,6 +149,8 @@ def _stream(request, kind, obj=None):
         has_more = len(page) > page_size
         page = page[:page_size]
         last = page[-1] if page else None
+        if prefs.view_mode == Preferences.VIEW_EXPANDED:
+            _mark_days(page)
 
     next_url = None
     if has_more and last:
