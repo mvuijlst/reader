@@ -302,8 +302,11 @@ body.dragging-feed .hide-read li.folder { display: block !important; }
   font-size: 13.5px; color: var(--text-2);
   background: var(--accent-soft); border: 1px solid var(--border); border-radius: 10px;
 }
-.stream-offer-actions { display: flex; gap: 8px; }
-.stream-offer-actions form { margin: 0; }
+/* On a phone the two buttons go on two lines, and a long domain breaks inside
+   its button rather than running off the edge. */
+.stream-offer-actions { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; max-width: 100%; }
+.stream-offer-actions form { margin: 0; min-width: 0; max-width: 100%; }
+.stream-offer-actions .btn { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
 
 /* Items from feeds set to open on their site: a small "↗ nytimes.com" cue. */
 .site-ico { width: 13px; height: 13px; flex: none; color: var(--muted); }
