@@ -15,6 +15,11 @@ append every fix to the running list at the bottom.
   pages as they load, and moves to the next post when the first one is
   dismissed.
 
+### Fixed
+- On a phone, "Keep reading here" in the banner that offers to open a
+  summary-only feed's articles on its site ran off the right edge. The two
+  buttons now go on two lines when they don't fit side by side.
+
 ## 2026-11-13
 
 ### Added
@@ -132,3 +137,4 @@ append every fix to the running list at the bottom.
 | 2026-11-09 | "Mark all as read" could be hit by accident when switching new/all | `7ad2168` |
 | 2026-11-09 | Magazine quotes hard to read over backdrop patterns | `7ad2168` |
 | 2026-11-10 | Same article repeated when present in several feeds | `6451d6c` |
+| 2026-11-16 | "Keep reading here" ran off the edge of the open-on-site banner on phones | `820fea1` |
