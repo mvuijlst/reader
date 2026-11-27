@@ -6,7 +6,7 @@
     <div class="brand"><svg class="brand-mark"><use href="#i-rss"/></svg><span>Reader</span></div>
     <form method="post" action="{% url 'login' %}">
       {% csrf_token %}
-      {% if form.non_field_errors %}<p class="error">That username and password didn't match.</p>{% endif %}
+      {% for error in form.non_field_errors %}<p class="error">{{ error }}</p>{% endfor %}
       <label>Username <input type="text" name="username" autocomplete="username" autocapitalize="none" required autofocus value="{{ form.username.value|default:'' }}"></label>
       <label>Password <input type="password" name="password" autocomplete="current-password" required></label>
       <input type="hidden" name="next" value="{{ next }}">

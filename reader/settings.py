@@ -67,6 +67,11 @@ READER_USER_AGENT = os.environ.get(
 
 READER_PAGE_SIZE = 30
 
+# Fetches only go to public internet addresses, never to this machine, the LAN
+# or a cloud metadata service (see services/http.py). Turn this on only if you
+# subscribe to feeds on your own network.
+READER_ALLOW_PRIVATE_ADDRESSES = env_bool("READER_ALLOW_PRIVATE_ADDRESSES", default=False)
+
 # ----------------------------------------------------------------------------
 
 INSTALLED_APPS = [

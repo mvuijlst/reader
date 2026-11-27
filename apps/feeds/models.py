@@ -176,3 +176,17 @@ class Preferences(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class LoginFailure(models.Model):
+    """A failed sign-in, kept for a short while so password guessing can be
+    slowed down per address (see apps/feeds/login_throttle.py)."""
+
+    ip = models.GenericIPAddressField()
+    at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["ip", "at"])]
+
+    def __str__(self):
+        return f"{self.ip} at {self.at:%Y-%m-%d %H:%M}"

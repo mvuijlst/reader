@@ -1,14 +1,103 @@
-"""Small HTTP layer: one GET with a size cap, redirect bookkeeping, sane errors."""
+"""Small HTTP layer: one GET with a size cap, redirect bookkeeping, sane errors,
+and no fetching from addresses that aren't on the public internet."""
+import ipaddress
+import socket
 from dataclasses import dataclass, field
 
 import requests
 from django.conf import settings
+from requests.adapters import HTTPAdapter
+from urllib3.connection import HTTPConnection, HTTPSConnection
+from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 
 DEFAULT_TIMEOUT = (10, 30)  # connect, read
 
 
 class FetchError(Exception):
     pass
+
+
+# --- Public addresses only -----------------------------------------------------
+# Every address we fetch comes from outside: a pasted URL, an OPML file, a page's
+# <link>, a feed's own icon or site link, any redirect along the way. Unchecked,
+# any of them could point the server at itself (127.0.0.1), the LAN, or the cloud
+# provider's metadata service (169.254.169.254). The check runs on the address a
+# connection actually reached, after DNS, so a name that resolves to a private
+# address, or whose DNS answer changes between lookups, is caught too.
+# READER_ALLOW_PRIVATE_ADDRESSES turns it off, for feeds on your own network.
+
+
+class BlockedAddress(Exception):
+    pass
+
+
+def is_public_address(ip):
+    try:
+        addr = ipaddress.ip_address(ip.split("%", 1)[0])  # drop an IPv6 zone ("fe80::1%eth0")
+    except ValueError:
+        return False
+    if addr.version == 6 and addr.ipv4_mapped:
+        addr = addr.ipv4_mapped  # ::ffff:127.0.0.1 is 127.0.0.1
+    return addr.is_global
+
+
+def _blocked(host, ip):
+    where = ip if host.strip("[]") == ip else f"{host} is at {ip}, which"
+    return BlockedAddress(f"{where} is not a public internet address")
+
+
+class _PublicOnly:
+    def _new_conn(self):
+        if settings.READER_ALLOW_PRIVATE_ADDRESSES:
+            return super()._new_conn()
+        # Refuse up front when the name only leads to private addresses...
+        try:
+            ips = sorted({info[4][0] for info in socket.getaddrinfo(self._dns_host, self.port, type=socket.SOCK_STREAM)})
+        except OSError:
+            ips = []  # urllib3 reports the DNS failure in its own words below
+        if ips and not any(is_public_address(ip) for ip in ips):
+            raise _blocked(self.host, ips[0])
+        sock = super()._new_conn()
+        # ...and check where the connection really went: DNS may answer differently
+        # the second time, and a name can have public and private addresses.
+        peer = sock.getpeername()[0]
+        if not is_public_address(peer):
+            sock.close()
+            raise _blocked(self.host, peer)
+        return sock
+
+
+class _PublicHTTPConnection(_PublicOnly, HTTPConnection):
+    pass
+
+
+class _PublicHTTPSConnection(_PublicOnly, HTTPSConnection):
+    pass
+
+
+class _PublicHTTPPool(HTTPConnectionPool):
+    ConnectionCls = _PublicHTTPConnection
+
+
+class _PublicHTTPSPool(HTTPSConnectionPool):
+    ConnectionCls = _PublicHTTPSConnection
+
+
+class _PublicAdapter(HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        super().init_poolmanager(*args, **kwargs)
+        self.poolmanager.pool_classes_by_scheme = {"http": _PublicHTTPPool, "https": _PublicHTTPSPool}
+
+
+def _session():
+    session = requests.Session()
+    # No proxy from the environment: it would do the fetching for us, unchecked.
+    # (This also keeps ~/.netrc passwords from being sent to feed hosts.)
+    session.trust_env = False
+    adapter = _PublicAdapter()
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
 
 
 @dataclass
@@ -89,7 +178,7 @@ def get(url, *, headers=None, max_bytes=10 * 1024 * 1024, timeout=DEFAULT_TIMEOU
     all_headers = {"User-Agent": settings.READER_USER_AGENT}
     all_headers.update(headers or {})
     try:
-        with requests.get(
+        with _session() as session, session.get(
             url, headers=all_headers, timeout=timeout, stream=True, allow_redirects=True
         ) as r:
             chunks, size = [], 0
@@ -110,6 +199,8 @@ def get(url, *, headers=None, max_bytes=10 * 1024 * 1024, timeout=DEFAULT_TIMEOU
             )
     except FetchError:
         raise
+    except BlockedAddress as e:
+        raise FetchError(f"Not fetched: {e}") from e
     except requests.exceptions.SSLError as e:
         raise FetchError(f"TLS error: {_short(e)}") from e
     except requests.exceptions.ConnectionError as e:

@@ -64,6 +64,12 @@ timer. One person, one server, all your reading history in one file.
 - A strict Content-Security-Policy as a second line of defence. Links open in a new
   tab, and no referrer is sent to other sites.
 - Login is required everywhere: one account, made with `createsuperuser`.
+- After 10 failed sign-ins from one address within 15 minutes, that address has to
+  wait, on both the reader's and the admin's sign-in page. Locked yourself out?
+  Wait, or clear the slate on the server with
+  `python manage.py shell -c "from apps.feeds.models import LoginFailure; LoginFailure.objects.all().delete()"`.
+- The server fetches only from public internet addresses: no feed, redirect or
+  icon link can make it fetch from itself, your network or a cloud metadata service.
 
 ## Keyboard shortcuts
 
@@ -159,6 +165,7 @@ Settings come from environment variables, read from `.env` (see `.env.example`).
 | `READER_FETCH_WORKERS` | `8` | parallel downloads per run |
 | `READER_AUTO_READ_DAYS` | `30` | auto-mark old unread items read (`0` = never) |
 | `READER_KEEP_DAYS` | `180` | prune read, unstarred items older than this (`0` = keep all) |
+| `READER_ALLOW_PRIVATE_ADDRESSES` | `false` | also fetch from private and local addresses, for feeds on your own network |
 
 ## Design notes
 
@@ -179,15 +186,16 @@ Settings come from environment variables, read from `.env` (see `.env.example`).
 ```
 reader/                 settings, urls, wsgi
 apps/feeds/
-  models.py             Folder, Feed, Item, Preferences
+  models.py             Folder, Feed, Item, Preferences, LoginFailure
   views.py              streams, item-state API, subscribe, manage, OPML
+  login_throttle.py     slows down password guessing on both sign-in pages
   services/
     fetcher.py          parallel polling, storing, auto-read and pruning
     discovery.py        find the feed behind a URL
     sanitize.py         nh3 policy, text snippets
     opml.py             import / export
     feedcheck.py        is a feed still there? (for prune_opml)
-    http.py             GET with a size cap and redirect tracking
+    http.py             GET with a size cap, redirect tracking, public addresses only
   management/commands/  fetch_feeds, import_opml, prune_opml
   templates/feeds/      reader shell, stream and item partials, manage page
   tests/
