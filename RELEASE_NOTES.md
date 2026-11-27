@@ -4,6 +4,14 @@ Newest first. Each entry lists what was added or changed, and under
 **Fixed** the issues that were resolved. Add new entries at the top, and
 append every fix to the running list at the bottom.
 
+## 2026-11-27
+
+### Fixed
+- htmx is now served by Reader itself instead of unpkg.com, and the
+  Content-Security-Policy allows scripts only from Reader's own address.
+  Before, it allowed any script on unpkg, so a feed that got HTML past the
+  sanitizer could have loaded one. (`a8122b2`)
+
 ## 2026-11-16
 
 ### Changed
@@ -138,3 +146,4 @@ append every fix to the running list at the bottom.
 | 2026-11-09 | Magazine quotes hard to read over backdrop patterns | `7ad2168` |
 | 2026-11-10 | Same article repeated when present in several feeds | `6451d6c` |
 | 2026-11-16 | "Keep reading here" ran off the edge of the open-on-site banner on phones | `820fea1` |
+| 2026-11-27 | Content-Security-Policy allowed scripts from all of unpkg.com | `a8122b2` |
