@@ -6,11 +6,23 @@ append every fix to the running list at the bottom.
 
 ## 2026-11-27
 
+### Added
+- After 10 failed sign-ins from one address within 15 minutes, that address
+  has to wait before it can try again. The password isn't even checked in
+  the meantime. This covers the reader's and the admin's sign-in page, and
+  counts per address, so nobody can lock you out of your own account from
+  elsewhere. (`bb8976f`)
+- `READER_ALLOW_PRIVATE_ADDRESSES`, for subscribing to feeds on your own
+  network (see below). (`bb8976f`)
+
 ### Fixed
 - htmx is now served by Reader itself instead of unpkg.com, and the
   Content-Security-Policy allows scripts only from Reader's own address.
   Before, it allowed any script on unpkg, so a feed that got HTML past the
   sanitizer could have loaded one. (`a8122b2`)
+- The server fetches only from public internet addresses. Before, a feed, a
+  redirect or an icon link could make it fetch from the server itself, its
+  network, or the cloud provider's metadata service. (`bb8976f`)
 
 ## 2026-11-16
 
@@ -147,3 +159,5 @@ append every fix to the running list at the bottom.
 | 2026-11-10 | Same article repeated when present in several feeds | `6451d6c` |
 | 2026-11-16 | "Keep reading here" ran off the edge of the open-on-site banner on phones | `820fea1` |
 | 2026-11-27 | Content-Security-Policy allowed scripts from all of unpkg.com | `a8122b2` |
+| 2026-11-27 | Feeds, redirects and icon links could make the server fetch from itself, its network or the metadata service | `bb8976f` |
+| 2026-11-27 | No limit on password guesses at the sign-in pages | `bb8976f` |
