@@ -17,10 +17,10 @@
   it is resolved to the real address, which is what GitHub Actions needs.
 
 .EXAMPLE
-  .\deploy\setup-github-deploy.ps1 myvps 2708
+  .\deploy\setup-github-deploy.ps1 myvps 2222
 
 .EXAMPLE
-  .\deploy\setup-github-deploy.ps1 -VpsHost 203.0.113.10 -Port 2708 -DryRun
+  .\deploy\setup-github-deploy.ps1 -VpsHost 203.0.113.10 -Port 2222 -DryRun
 #>
 [CmdletBinding()]
 param(

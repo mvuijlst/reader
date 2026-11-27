@@ -2,14 +2,15 @@
 
 Feed content is sanitized server-side, but it is still third-party HTML in our
 origin, so the CSP is a second wall: no inline scripts, no framing, scripts
-only from ourselves and the pinned htmx CDN. Images and media may come from
-anywhere because that's what feeds link to.
+only from ourselves (htmx is served from static/js, not a CDN, so no other
+host can supply a script). Images and media may come from anywhere because
+that's what feeds link to.
 """
 
 POLICY = "; ".join(
     [
         "default-src 'self'",
-        "script-src 'self' https://unpkg.com",
+        "script-src 'self'",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src * data: blob:",

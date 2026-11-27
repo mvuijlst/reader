@@ -192,6 +192,7 @@ apps/feeds/
   templates/feeds/      reader shell, stream and item partials, manage page
   tests/
 static/js/reader.js     keyboard, read/star state, counts, scroll-to-read
+static/js/htmx-*.min.js htmx, served from here rather than a CDN
 static/css/reader.css
 deploy/                 systemd units, nginx vhost, runbook, update script
 ```
